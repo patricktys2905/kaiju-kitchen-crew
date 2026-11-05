@@ -845,11 +845,39 @@ export class World {
     this.bubbles = [];
     const cp = this.checkpoint >= 0 ? this.checks[this.checkpoint] : null;
     if (cp) this.placeTeam(cp.tx, cp.ty); else this.placeTeam(this.level.spawn.x, this.level.spawn.y);
+    if (cp) this.bringAlong(cp);
     this.phase = 'play';
     this.phaseT = 0;
     this.splatWho = -1;
     this.updateCamera();
     this.events.push({ type: 'respawn' });
+  }
+
+  /** After a splat at a checkpoint, nothing you still need is left stranded behind it:
+   *  the Pot Mech parks next to the team and ingredients still needed from behind come too. */
+  private bringAlong(cp: Checkpoint): void {
+    const ground = (i: number) => { const b = this.tileAt(i, cp.ty + 1); return b !== 0 && b !== TILE_SHELF && !isHazardTile(b); };
+    const clear = (i: number, rows: number) => { for (let j = cp.ty - rows + 1; j <= cp.ty; j++) if (this.tileAt(i, j)) return false; return true; };
+    for (const r of this.robots) {
+      if (r.x + r.w / 2 >= cp.x - T) continue; // already at or ahead of the checkpoint
+      for (const d of [3, 4, 5, -4, -5, -6, 6, 7]) {
+        const i0 = cp.tx + d;
+        if (![0, 1, 2].every(k => ground(i0 + k) && clear(i0 + k, 3))) continue;
+        const box = { x: i0 * T + (3 * T - r.w) / 2, y: (cp.ty + 1) * T - r.h, w: r.w, h: r.h };
+        if (this.players.some(p => overlap(p, box))) continue;
+        r.x = box.x; r.y = box.y; r.ckX = r.x; r.ckY = r.y;
+        break;
+      }
+    }
+    const needed = this.level.recipe.slice(this.delivered);
+    for (const it of this.items) {
+      if (it.delivered || it.carrier >= 0 || it.x + PHYS.item / 2 >= cp.x - T) continue;
+      if (!needed.includes(it.kind)) continue;
+      // drop it just beside the flag (on the side away from the team's columns)
+      const col = [-1, -2, 1, 2, 0].map(d => cp.tx + d).find(i => ground(i) && clear(i, 1)) ?? cp.tx;
+      it.x = col * T + (T - PHYS.item) / 2; it.y = (cp.ty + 1) * T - PHYS.item - 2; it.vx = it.vy = 0; it.thrower = -1;
+      it.homeX = it.x; it.homeY = it.y;
+    }
   }
 
   private updateCheckpoints(): void {

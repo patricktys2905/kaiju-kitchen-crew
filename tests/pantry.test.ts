@@ -256,6 +256,31 @@ describe('Mech Arm (level)', () => {
   });
 });
 
+describe('Pantry Panic after a splat', () => {
+  it('splatting past the 4-tile step brings the Mech (with its watermelon) and the left-behind flour to the checkpoint', () => {
+    const w = makeWorld(PANTRY_LEVELS.find(l => l.name === 'Pantry Panic')!, 2);
+    const r = w.robots[0];
+    const melon = w.items.find(i => i.kind === 'melon')!;
+    w.tetherLen = 0;
+    // the Mech carries the melon, but is left behind the step; the team goes on and reaches checkpoint 2
+    r.carry = melon.idx; melon.carrier = 1000;
+    w.players.forEach((p, i) => { p.x = 70 * T + i * 40; p.y = 16 * T - p.h; });
+    frames(w, 10);
+    expect(w.checkpoint).toBe(1);
+    // splat on the mousetraps
+    const [a] = w.players;
+    a.x = 76 * T; a.y = 16 * T - a.h - 2;
+    for (let f = 0; f < 120 && w.phase !== 'splat'; f++) frames(w, 1);
+    expect(w.phase).toBe('splat');
+    for (let f = 0; f < 200 && w.phase !== 'play'; f++) frames(w, 1);
+    expect(w.phase).toBe('play');
+    expect(r.x).toBeGreaterThan(65 * T); // the Mech came along
+    expect(r.carry).toBe(melon.idx); // still holding the melon
+    const flour = w.items.find(i => i.kind === 'flour')!;
+    expect(flour.x).toBeGreaterThan(66 * T); // the flour left on the step came along too
+  });
+});
+
 describe('ticket levels never depend on a ticket', () => {
   it('Order Chaos: the steps can be climbed in normal gravity, by every kaiju on its own', () => {
     const lv = PANTRY_LEVELS.find(l => l.name === 'Order Chaos')!;

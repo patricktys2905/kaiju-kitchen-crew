@@ -104,3 +104,20 @@ describe('respawning is safe at every checkpoint', () => {
     });
   }
 });
+
+describe('after a splat, nothing you still need is stranded behind the checkpoint', () => {
+  for (const lvl of LEVELS) {
+    it(lvl.name, () => {
+      const w = makeWorld(lvl, 2);
+      for (let c = 0; c < w.checks.length; c++) {
+        const cp = w.checks[c];
+        w.checkpoint = c;
+        (w as unknown as { respawn(): void }).respawn();
+        frames(w, 60);
+        for (const it of w.items) if (!it.delivered && it.carrier < 0) expect(it.x + 12, `${it.kind} behind checkpoint ${c}`).toBeGreaterThanOrEqual(cp.x - 2 * T);
+        for (const r of w.robots) expect(r.x + r.w / 2, `Mech behind checkpoint ${c}`).toBeGreaterThanOrEqual(cp.x - 7 * T);
+        expect(w.phase).toBe('play');
+      }
+    });
+  }
+});

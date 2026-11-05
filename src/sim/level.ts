@@ -35,7 +35,7 @@ export type EntDef =
   | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
   | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
   | { t: 'robot'; x: number; y: number } // Pot Mech, 3x3 tiles, top-left tile
-  | { t: 'ticket'; x: number; rule: TicketRule; dur?: number } // prints when the first kaiju passes column x
+  | { t: 'ticket'; x: number; rule: TicketRule; dur?: number } // prints once every kaiju is past column x
   | { t: 'sign'; x: number; y: number; text: string };
 
 export interface LevelDef {

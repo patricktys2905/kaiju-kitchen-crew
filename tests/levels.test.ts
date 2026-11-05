@@ -32,7 +32,7 @@ describe('every level is well-formed', () => {
         });
         it(`scales are satisfiable with ${n} kaiju (+ cubes)`, () => {
           const w = makeWorld(lvl, n);
-          const cubeWeight = w.crates.reduce((s, c) => s + c.weight, 0);
+          const cubeWeight = w.crates.reduce((s, c) => s + c.weight, 0) + w.robots.length * 6; // the Pot Mech weighs 6
           for (const s of w.scales) expect(s.need).toBeLessThanOrEqual(n + cubeWeight);
           // a BIG kaiju (cookie) pushes like two
           const strength = lvl.ents.some(e => e.t === 'pickup' && e.kind === 'cookie') ? 2 * n : n;

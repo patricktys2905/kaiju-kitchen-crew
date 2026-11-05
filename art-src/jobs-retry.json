@@ -1,8 +1,8 @@
 [
   {
-    "name": "it-berry",
+    "name": "it-honey",
     "newChat": true,
     "refs": ["art-src/ref-style.png"],
-    "prompt": "Generate an image. These are characters from my 2D side-view platformer game set in a giant kitchen. I need a small INGREDIENT icon in EXACTLY this art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. One shiny red STRAWBERRY with green leaves on top, centred, filling about 80% of the frame, on a solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1."
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game set in a giant kitchen. I need a small INGREDIENT icon in EXACTLY this art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. A small round glass jar of golden HONEY with a checked cloth lid tied with string, centred, filling about 80% of the frame, on a solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1."
   }
 ]

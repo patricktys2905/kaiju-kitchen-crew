@@ -4,6 +4,7 @@
 // and nothing over ~7 tiles can be stacked even by 6, so the toaster is needed.
 import { LevelBuilder, type LevelDef } from './level';
 import { FRIDGE_LEVELS } from './levels-fridge';
+import { PANTRY_LEVELS } from './levels-pantry';
 
 function shelfHelp(): LevelDef {
   const b = new LevelBuilder('Shelf Help', 'Counter Top', 'Get everyone up the counter and cook some toast!', 46, ['bread']).room();
@@ -128,4 +129,4 @@ function sandwichRush(): LevelDef {
 }
 
 export const COUNTER_LEVELS: LevelDef[] = [shelfHelp(), weighIn(), sugarCubes(), popUp(), hotHob(), sandwichRush()];
-export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS];
+export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS, ...PANTRY_LEVELS];

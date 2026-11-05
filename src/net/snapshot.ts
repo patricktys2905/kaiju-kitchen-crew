@@ -21,6 +21,10 @@ export interface Snapshot {
   k?: number[]; // pickups respawn
   j?: number[][]; // jelly frozen wobble
   bl?: number[][]; // blocks broken breakT
+  r?: number[][]; // robots x y vx vy facing carry grounded landT armT ...crew
+  tf?: number[]; // tickets fired
+  ru?: [string | null, number]; // rule, time left
+  tl?: number; // noodle length
 }
 
 export function makeSnapshot(w: World): Snapshot {
@@ -30,6 +34,10 @@ export function makeSnapshot(w: World): Snapshot {
     k: w.pickups.map(pk => r2(pk.respawn)),
     j: w.jellies.map(j => [j.frozen ? 1 : 0, r2(j.wobble)]),
     bl: w.blocks.map(b => [b.broken ? 1 : 0, r2(b.breakT)]),
+    r: w.robots.map(r => [r1(r.x), r1(r.y), r1(r.vx), r1(r.vy), r.facing, r.carry, r.grounded ? 1 : 0, r2(r.landT), r2(r.armT), ...r.crew]),
+    tf: w.tickets.map(t => (t.fired ? 1 : 0)),
+    ru: [w.rule, r2(w.ruleT)],
+    tl: w.tetherLen,
     i: w.items.map(it => [r1(it.x), r1(it.y), it.carrier, it.delivered ? 1 : 0]),
     c: w.crates.map(c => [r1(c.x), r1(c.y), c.pushers]),
     l: w.lifts.map(l => [r1(l.x), r1(l.y)]),
@@ -63,7 +71,19 @@ export function applySnapshot(w: World, s: Snapshot): void {
     p.h = p.big ? PHYS.big.h : PHYS.ph;
     p.spicyT = a[9] ?? 0;
     p.fizz = a[10] === 1;
+    p.inRobot = -1;
   });
+  s.r?.forEach((a, i) => {
+    const r = w.robots[i];
+    if (!r) return;
+    [r.x, r.y, r.vx, r.vy] = a;
+    r.facing = a[4] < 0 ? -1 : 1; r.carry = a[5]; r.grounded = a[6] === 1; r.landT = a[7]; r.armT = a[8];
+    r.crew = a.slice(9);
+    for (const pi of r.crew) if (w.players[pi]) w.players[pi].inRobot = i;
+  });
+  s.tf?.forEach((v, i) => { const t = w.tickets[i]; if (t) t.fired = v === 1; });
+  if (s.ru) { w.rule = s.ru[0] as World['rule']; w.ruleT = s.ru[1]; }
+  if (s.tl !== undefined) w.tetherLen = s.tl;
   s.k?.forEach((v, i) => { const pk = w.pickups[i]; if (pk) pk.respawn = v; });
   s.j?.forEach((a, i) => { const j = w.jellies[i]; if (j) { j.frozen = a[0] === 1; j.wobble = a[1]; } });
   s.bl?.forEach((a, i) => { const b = w.blocks[i]; if (b) { b.broken = a[0] === 1; b.breakT = a[1]; } });

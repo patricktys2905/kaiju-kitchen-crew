@@ -2,7 +2,8 @@
 import type * as Phaser from 'phaser';
 import { addSlice, fitInside, hasArt, type SlicePool, type SpritePool } from './art';
 import { ITEMS, PHYS, T, type ItemKind } from '../sim/constants';
-import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID } from '../sim/level';
+import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID, TILE_TRAP } from '../sim/level';
+import { SPECIES } from '../sim/constants';
 import type { World } from '../sim/world';
 
 type G = Phaser.GameObjects.Graphics;
@@ -14,9 +15,9 @@ const MARBLE = 0xece6dc, MARBLE_D = 0xcfc6b8;
 export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, w: World): void {
   const g = scene.add.graphics().setDepth(0.2);
   layer.add(g);
-  const fridge = w.level.world === 'The Fridge';
-  const wallA = fridge ? 'bg-fridge' : 'bg-kitchen', wallB = fridge ? 'bg-fridge2' : 'bg-kitchen2';
-  const solidTex = fridge && hasArt('tex-fridge') ? 'tex-fridge' : 'tex-cabinet';
+  const fridge = w.level.world === 'The Fridge', pantry = w.level.world === 'The Pantry';
+  const wallA = fridge ? 'bg-fridge' : pantry ? 'bg-pantry' : 'bg-kitchen', wallB = fridge ? 'bg-fridge2' : pantry ? 'bg-pantry2' : 'bg-kitchen2';
+  const solidTex = fridge && hasArt('tex-fridge') ? 'tex-fridge' : pantry && hasArt('tex-pantry') ? 'tex-pantry' : 'tex-cabinet';
   const art = hasArt(wallA) && hasArt(solidTex);
   if (!art) { drawStatic(g, w); return; }
   // wall: two paintings side by side, alternating (mirrored every other pair)
@@ -50,6 +51,7 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       const above = at(i, j - 1);
       if (above !== TILE_SOLID && above !== TILE_HOT) {
         if (fridge) { g.fillStyle(0xe8f4fb, 1).fillRect(x, y, T, 10); g.fillStyle(0x9fc8e0, 1).fillRect(x, y + 8, T, 3); }
+        else if (pantry) { g.fillStyle(0xd9a46a, 1).fillRect(x, y, T, 8); g.fillStyle(0x6b3f1e, 1).fillRect(x, y + 7, T, 3); }
         else if (hasArt('tex-marble')) layer.add(scene.add.image(x, y, 'tex-marble', 'c' + (i % 4)).setOrigin(0).setDisplaySize(T, 13).setDepth(0.15));
         else g.fillStyle(MARBLE, 1).fillRect(x, y, T, 12);
         g.fillStyle(0x8a7a66, 0.6).fillRect(x, y + 12, T, 2);
@@ -72,8 +74,17 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       g.fillStyle(0xffffff, 0.8).fillRect(x, y, T, 4);
     } else if (t === TILE_ICICLE) {
       drawIcicles(g, x, y);
+    } else if (t === TILE_TRAP) {
+      layer.add(scene.add.image(x, y, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
+      if (hasArt('ob-trap')) layer.add(fitInside(scene.add.image(x + T / 2, y + 6, 'ob-trap'), T + 8, 26).setOrigin(0.5, 1).setDepth(0.4));
+      else drawTrap(g, x, y);
     }
   }
+}
+
+function drawTrap(g: G, x: number, y: number): void {
+  g.fillStyle(0xb57b4a, 1).fillRect(x + 2, y - 6, T - 4, 8);
+  g.lineStyle(2, 0xc0c0c0, 1).strokeRect(x + 6, y - 12, T - 12, 8);
 }
 
 function drawIcicles(g: G, x: number, y: number): void {
@@ -156,6 +167,9 @@ export function drawStatic(g: G, w: World): void {
       g.fillStyle(0xffffff, 0.8).fillRect(x, y, T, 4);
     } else if (t === TILE_ICICLE) {
       drawIcicles(g, x, y);
+    } else if (t === TILE_TRAP) {
+      g.fillStyle(WOOD, 1).fillRect(x, y, T, T);
+      drawTrap(g, x, y);
     }
   }
 }
@@ -205,7 +219,7 @@ export function drawItem(g: G, kind: ItemKind, cx: number, cy: number, s = PHYS.
       g.fillStyle(0x3a7ad0, 1).fillRect(cx - h * 0.6, cy - h * 0.2, s * 0.6, h * 1.2);
       g.fillStyle(0xffffff, 1).fillRect(cx - h * 0.6, cy - h, s * 0.6, h * 0.8);
       break;
-    case 'berry': case 'butter': case 'yogurt':
+    case 'berry': case 'butter': case 'yogurt': case 'honey': case 'cereal': case 'flour': case 'pasta': case 'melon':
       g.fillStyle(ITEMS[kind].color, 1).fillCircle(cx, cy, h);
       break;
     case 'lettuce':
@@ -230,6 +244,47 @@ export function placeItem(pool: SpritePool | null, g: G, kind: ItemKind, cx: num
 export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | null = null, slices: SlicePool | null = null): void {
   const art = (k: string) => !!pool && hasArt(k);
   const sliced = (k: string) => !!slices && hasArt(k);
+  // the noodle tying neighbouring kaiju together (sags when slack)
+  if (w.tetherLen > 0) {
+    for (let k = 0; k + 1 < w.players.length; k++) {
+      const a = w.players[k], b = w.players[k + 1];
+      if (a.inRobot >= 0 || b.inRobot >= 0) continue;
+      const ax = a.x + a.w / 2, ay = a.y + a.h * 0.55, bx = b.x + b.w / 2, by = b.y + b.h * 0.55;
+      const d = Math.hypot(bx - ax, by - ay);
+      const sag = d < w.tetherLen ? Math.sqrt(w.tetherLen * w.tetherLen - d * d) * 0.45 : 0;
+      const mx = (ax + bx) / 2, my = (ay + by) / 2 + sag;
+      const pts: { x: number; y: number }[] = [];
+      for (let s = 0; s <= 16; s++) {
+        const t = s / 16, u = 1 - t;
+        pts.push({ x: u * u * ax + 2 * u * t * mx + t * t * bx, y: u * u * ay + 2 * u * t * my + t * t * by + Math.sin(t * Math.PI * 3 + time * 2) * 1.2 });
+      }
+      for (const [wd, col] of [[8, 0xb8862a], [5, 0xf4d47a]] as [number, number][]) {
+        g.lineStyle(wd, col, 1);
+        for (let s = 0; s < pts.length - 1; s++) g.lineBetween(pts[s].x, pts[s].y, pts[s + 1].x, pts[s + 1].y);
+      }
+    }
+  }
+  // the Pot Mech (the first crew member peeks out of the porthole)
+  for (const r of w.robots) {
+    const squash = r.landT > 0 ? 1 - r.landT * 0.6 : 1;
+    if (art('ob-robot')) {
+      const img = fitInside(pool!.take('ob-robot', 9), r.w + 40, r.h + 30).setOrigin(0.5, 1);
+      img.setScale(img.scaleX * (2 - squash), img.scaleY * squash).setPosition(r.x + r.w / 2, r.y + r.h + 4).setFlipX(r.facing < 0);
+      const pilot = r.crew[0];
+      if (pilot !== undefined) {
+        const key = 'kaiju-' + w.players[pilot].species;
+        const px = r.x + r.w / 2 + (r.facing > 0 ? 1 : -1) * img.displayWidth * 0.08, py = r.y + r.h + 4 - img.displayHeight * 0.55;
+        g.fillStyle(0xbfe6ff, 1).fillCircle(px, py, 15);
+        if (hasArt(key)) fitInside(pool!.take(key, 9.5), 26, 26).setPosition(px, py + 2).setFlipX(r.facing < 0);
+        g.fillStyle(0xffffff, 0.35).fillCircle(px - 5, py - 6, 5);
+      }
+    } else {
+      g.fillStyle(0x8a9099, 1).fillRoundedRect(r.x, r.y + r.h * (1 - squash), r.w, r.h * squash, 14);
+      g.fillStyle(0xbfe6ff, 1).fillCircle(r.x + r.w / 2, r.y + r.h * 0.45, 16);
+    }
+    if (!r.crew.length) g.lineStyle(3, 0xffffff, 0.35 + 0.3 * Math.sin(time * 4)).strokeRoundedRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12, 16);
+    void SPECIES;
+  }
   // checkpoints (toothpick flags)
   w.checks.forEach((c, i) => {
     const x = c.x + T / 2, base = c.y + T;

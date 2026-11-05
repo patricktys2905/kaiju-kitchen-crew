@@ -29,6 +29,14 @@ chili melts ice walls; soda gives one huge jump. Ice floors slide, jelly bounces
 freezer is on), icicles splat.
 7. **Cookie Monster** 8. **Heavy Snack** 9. **Slippery Slope** 10. **Deep Freeze** 11. **Hot Stuff** 12. **Fridge Raid**
 
+## World 3: The Pantry
+The **noodle tether** ties neighbouring kaiju together (standing kaiju hold, airborne ones are pulled: dangle,
+swing, get hauled up, get caught when you miss). The **Pot Mech**: GRAB next to it to climb in; crew seats are
+legs, jump, arm (GRAB again to hop out); it weighs 6, smashes crackers, jumps ~4 tiles, carries riders on its
+head and is the only thing that can carry a watermelon. **Order tickets** change a rule once the whole team is
+past them (moon gravity, backwards controls, lights out, rush order, noodle snapped). Mousetraps splat.
+13. **Noodle Buddies** 14. **Swing Shift** 15. **Pot Mech** 16. **Mech Arm** 17. **Order Chaos** 18. **Pantry Panic**
+
 ## Develop
 ```
 npm install

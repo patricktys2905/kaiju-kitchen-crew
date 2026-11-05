@@ -11,7 +11,8 @@ import { body, display, popIn, withShadow } from '../render/fonts';
 import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { nudgeSleepers } from '../sim/solo';
-import { NO_INPUT, World, type GameEvent, type PlayerInput } from '../sim/world';
+import { NO_INPUT, robotRole, World, type GameEvent, type PlayerInput } from '../sim/world';
+import type { TicketRule } from '../sim/level';
 import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
 import { fmtTime, loadProgress, saveClear } from '../ui';
 
@@ -28,6 +29,14 @@ export interface GameData {
 
 let controllers: Controllers | null = null; // survives level changes in local play
 
+const TICKETS: Record<TicketRule, { title: string; text: string; short: string }> = {
+  lowgrav: { title: 'MOON GRAVITY', text: 'Everything floats! Jump really high.', short: 'Moon gravity' },
+  reverse: { title: 'BACKWARDS DAY', text: 'Left is right and right is left!', short: 'Backwards controls' },
+  dark: { title: 'LIGHTS OUT', text: 'Stick together, you only see near each other.', short: 'Lights out' },
+  speedy: { title: 'RUSH ORDER', text: 'Everyone runs super fast!', short: 'Rush order' },
+  untie: { title: 'NOODLE SNAPPED', text: "You're not tied together any more.", short: '' },
+};
+
 
 
 export class GameScene extends Phaser.Scene {
@@ -43,6 +52,9 @@ export class GameScene extends Phaser.Scene {
   private pool!: SpritePool;
   private hudPool!: SpritePool;
   private slices!: SlicePool;
+  private dark!: Phaser.GameObjects.RenderTexture;
+  private robotTags: Phaser.GameObjects.Text[] = [];
+  private ticketText!: Phaser.GameObjects.Text;
   private hud!: Phaser.GameObjects.Graphics;
   private kaiju: Phaser.GameObjects.Image[] = [];
   private tags: Phaser.GameObjects.Text[] = [];
@@ -105,6 +117,7 @@ export class GameScene extends Phaser.Scene {
     this.pool = new SpritePool(this, this.worldLayer);
     this.hudPool = new SpritePool(this, this.hudLayer);
     this.slices = new SlicePool(this, this.worldLayer);
+    this.robotTags = [];
     this.time0 = 0;
 
     buildStatic(this, this.worldLayer, w);
@@ -131,6 +144,16 @@ export class GameScene extends Phaser.Scene {
     });
 
     // HUD (fixed to the screen)
+    for (let i = 0; i < w.robots.length; i++) this.robotTags.push(L(this.add.text(0, 0, '', body(13, '#ffe9c7', 900, { stroke: '#2a1408', strokeThickness: 4, align: 'center' })).setOrigin(0.5, 1).setDepth(11)));
+    // lights-out ticket: a dark layer with soft holes around every kaiju
+    if (!this.textures.exists('glow')) {
+      const c = this.textures.createCanvas('glow', 320, 320)!;
+      const ctx = c.getContext();
+      const grad = ctx.createRadialGradient(160, 160, 20, 160, 160, 160);
+      grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.55, 'rgba(255,255,255,0.85)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 320, 320); c.refresh();
+    }
+    this.dark = H(this.add.renderTexture(0, 0, VIEW.w, VIEW.h).setOrigin(0).setDepth(95).setVisible(false));
     this.hud = H(this.add.graphics().setDepth(100));
     this.hudFront = H(this.add.graphics().setDepth(104));
     const top = isTouchDevice ? 56 : 14;
@@ -140,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     this.banner = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setDepth(110), 6));
     this.sub = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setDepth(110), 3));
     const hint = d.mode === 'guest' ? 'F full screen · Esc leave' : d.mode === 'host' ? 'R retry · F full screen · Esc menu' : 'R retry · F full screen · Esc menu · Q / R-Shift swap kaiju';
+    this.ticketText = H(withShadow(this.add.text(VIEW.w - 20, (isTouchDevice ? 56 : 14) + 34, '', body(17, '#ffe27a', 900, { align: 'right' })).setOrigin(1, 0).setDepth(101), 2));
     this.hint = H(withShadow(this.add.text(20, VIEW.h - 30, isTouchDevice ? '' : hint, body(15, '#fff6e6', 800)).setDepth(101), 2));
 
     this.wireNet();
@@ -329,8 +353,28 @@ export class GameScene extends Phaser.Scene {
         case 'bounce': sfx.bounce(); break;
         case 'melt': sfx.melt(); break;
         case 'smash': sfx.smash(); this.cameras.main.shake(120, 0.004); break;
+        case 'board': sfx.board(); break;
+        case 'exit': sfx.exit(); break;
+        case 'heavy': sfx.wrong(); this.popup('Too heavy! Use the Pot Mech', w.players[e.p].x + w.players[e.p].w / 2, w.players[e.p].y - 30, '#ffb0a0'); break;
+        case 'robotJump': sfx.robotJump(); break;
+        case 'robotLand': sfx.robotLand(); this.cameras.main.shake(100, 0.004); break;
+        case 'ticket': this.showTicket(e.rule); break;
+        case 'ticketEnd': sfx.ticketEnd(); break;
       }
     }
+  }
+
+  private showTicket(rule: TicketRule): void {
+    sfx.ticket();
+    const info = TICKETS[rule];
+    const box = this.add.container(VIEW.w / 2, -140).setDepth(120);
+    this.hudLayer.add(box);
+    if (hasArt('ob-ticket')) box.add(this.add.image(0, 0, 'ob-ticket').setDisplaySize(330, 200).setAngle(-3));
+    else box.add(this.add.rectangle(0, 0, 330, 200, 0xfffaf0));
+    box.add(this.add.text(0, -42, 'NEW ORDER TICKET!', display(22, '#d23a2a', { strokeThickness: 0 })).setOrigin(0.5));
+    box.add(this.add.text(0, -6, info.title, display(30, '#2a1408', { strokeThickness: 0 })).setOrigin(0.5));
+    box.add(this.add.text(8, 36, info.text, body(16, '#4a3020', 800, { align: 'center', wordWrap: { width: 240 } })).setOrigin(0.5));
+    this.tweens.add({ targets: box, y: 170, duration: 450, ease: 'Back.easeOut', hold: 2200, yoyo: true, onComplete: () => box.destroy() });
   }
 
   private popup(text: string, x: number, y: number, color: string, size = 22): void {
@@ -389,8 +433,9 @@ export class GameScene extends Phaser.Scene {
       img.setPosition(p.x + p.w / 2, p.y + p.h + 4 - bob);
       img.setFlipX(p.facing < 0);
       if (img.texture.key === '__WHITE') img.setDisplaySize(p.w, p.h).setTint(SPECIES[p.species].color);
+      const crew = p.inRobot >= 0;
       const splatted = w.phase === 'splat' && w.splatWho === i;
-      img.setAlpha(splatted ? 0.35 + 0.3 * Math.sin(time * 30) : 1);
+      img.setAlpha(crew ? 0 : splatted ? 0.35 + 0.3 * Math.sin(time * 30) : 1);
       img.setAngle(splatted ? 90 : 0);
       // name tag
       let label: string;
@@ -419,7 +464,18 @@ export class GameScene extends Phaser.Scene {
       // neighbours' tags sit at different heights so they don't overlap
       const near = w.players.some(o => o !== p && o.idx < p.idx && Math.abs(o.x - p.x) < 60 && Math.abs(o.y - p.y) < 20);
       tag.setPosition(p.x + p.w / 2, p.y - 30 - carryLift - (near ? 15 : 0) + (asleep ? Math.sin(time * 2 + i) * 3 : 0));
-      tag.setAlpha(asleep ? 0.7 : 1);
+      tag.setAlpha(crew ? 0 : asleep ? 0.7 : 1);
+    });
+    w.robots.forEach((r, ri) => {
+      const t = this.robotTags[ri];
+      const names = r.crew.map((pi, seat) => {
+        const role = robotRole(seat, r.crew.length);
+        const icon = role === 'all' ? 'ALL' : role === 'legs' ? 'LEGS' : role === 'jump' ? 'JUMP' : role === 'arm' ? 'ARM' : role === 'jump+arm' ? 'JUMP+ARM' : 'RIDE';
+        const who = d.mode === 'local' ? controllers!.labelOf(pi) ?? w.players[pi].name : w.players[pi].name;
+        return icon + ': ' + who;
+      });
+      t.setText(names.length ? names.join('\n') : 'GRAB to climb in');
+      t.setPosition(r.x + r.w / 2, r.y - 12 - (w.players.some(p => p.inRobot < 0 && Math.abs(p.x + p.w / 2 - (r.x + r.w / 2)) < r.w / 2 && p.y < r.y) ? 40 : 0));
     });
     // carried ingredients go in front of the kaiju
     for (const it of w.items) {
@@ -467,6 +523,19 @@ export class GameScene extends Phaser.Scene {
       if (i < r.length - 1) g.fillStyle(0xb08a5a, 1).fillTriangle(x + 22, y - 4, x + 22, y + 4, x + 28, y);
     });
     this.hudPool.end();
+    // order ticket in force
+    this.ticketText.setText(w.rule ? '🎫 ' + TICKETS[w.rule].short + (w.ruleT > 0 ? ' · ' + Math.ceil(w.ruleT) + 's' : '') : '');
+    // lights out
+    this.dark.setVisible(w.rule === 'dark');
+    if (w.rule === 'dark') {
+      const cam = this.cameras.main;
+      const sx = (x: number) => (x - cam.scrollX) * ZOOM, sy = (y: number) => (y - cam.scrollY) * ZOOM;
+      this.dark.clear().fill(0x05030a, 0.94);
+      for (const p of w.players) if (p.inRobot < 0) this.dark.erase('glow', sx(p.x + p.w / 2), sy(p.y + p.h / 2));
+      for (const r of w.robots) this.dark.erase('glow', sx(r.x + r.w / 2), sy(r.y + r.h / 2));
+      for (const k of [...w.pots, ...w.plates]) this.dark.erase('glow', sx(k.x + k.w / 2), sy(k.y));
+      this.dark.render();
+    }
     this.recipeLabel.setText(w.recipeDone ? 'COOKED! → PLATE' : 'ORDER');
     this.recipeLabel.setColor(w.recipeDone ? '#2a9a3a' : '#7a4a22');
 

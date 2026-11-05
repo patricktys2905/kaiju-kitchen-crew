@@ -81,5 +81,11 @@ export const sfx = {
   bounce: () => tone(200, 0.18, 'sine', 0.09, 420),
   melt: () => { noise(0.6, 0.1, 1200); tone(900, 0.4, 'sine', 0.04, -600); },
   smash: () => { noise(0.35, 0.2, 2200); tone(140, 0.2, 'square', 0.08, -60); },
+  board: () => { tone(220, 0.08, 'square', 0.06); tone(330, 0.1, 'square', 0.05, 0, 0.07); noise(0.1, 0.05, 2000, 0.05); },
+  exit: () => tone(500, 0.12, 'triangle', 0.05, -200),
+  robotJump: () => { noise(0.25, 0.1, 900); tone(120, 0.3, 'square', 0.07, 160); },
+  robotLand: () => { tone(70, 0.3, 'square', 0.12, -30); noise(0.2, 0.14, 600); },
+  ticket: () => { [1200, 900, 1200, 1500].forEach((f, i) => tone(f, 0.06, 'square', 0.04, 0, i * 0.07)); noise(0.3, 0.05, 6000, 0.3); },
+  ticketEnd: () => tone(700, 0.2, 'triangle', 0.05, -300),
   clear: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.2, 'triangle', 0.07, 0, i * 0.11)); },
 };

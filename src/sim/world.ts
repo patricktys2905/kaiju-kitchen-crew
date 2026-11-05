@@ -819,9 +819,10 @@ export class World {
       this.ruleT -= STEP;
       if (this.ruleT <= 0) { this.rule = null; this.ruleT = 0; this.events.push({ type: 'ticketEnd' }); }
     }
-    const front = Math.max(...this.players.map(p => p.x + p.w / 2));
+    // a ticket prints once the WHOLE team is past it (so nobody gets stranded by a rule change)
+    const last = Math.min(...this.players.map(p => p.x + p.w / 2));
     for (const t of this.tickets) {
-      if (t.fired || front < t.x) continue;
+      if (t.fired || last < t.x) continue;
       t.fired = true;
       if (t.rule === 'untie') this.tetherLen = 0;
       else { this.rule = t.rule; this.ruleT = t.dur; }

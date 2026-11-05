@@ -11,7 +11,11 @@ export const TILE_SHELF = 2; // jump up through, stand on top
 export const TILE_HOT = 3; // always-hot hob: solid, splats on touch
 export const TILE_ICE = 4; // slippery floor
 export const TILE_ICICLE = 5; // icicles: solid, splats on touch
-export const isHazardTile = (t: number) => t === TILE_HOT || t === TILE_ICICLE;
+export const TILE_TRAP = 6; // mousetrap: solid, splats on touch
+export const isHazardTile = (t: number) => t === TILE_HOT || t === TILE_ICICLE || t === TILE_TRAP;
+
+/** Order tickets change one rule until the next ticket (or for `dur` seconds). 'untie' cuts the noodle. */
+export type TicketRule = 'lowgrav' | 'reverse' | 'dark' | 'speedy' | 'untie';
 
 export type PickupKind = 'cookie' | 'lemon' | 'chili' | 'soda';
 
@@ -30,6 +34,8 @@ export type EntDef =
   | { t: 'pickup'; kind: PickupKind; x: number; y: number } // eaten on touch, grows back
   | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
   | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
+  | { t: 'robot'; x: number; y: number } // Pot Mech, 3x3 tiles, top-left tile
+  | { t: 'ticket'; x: number; rule: TicketRule; dur?: number } // prints when the first kaiju passes column x
   | { t: 'sign'; x: number; y: number; text: string };
 
 export interface LevelDef {
@@ -40,6 +46,7 @@ export interface LevelDef {
   h: number;
   tiles: Uint8Array; // w*h
   recipe: ItemKind[];
+  tether?: number; // kaiju tied together by a noodle this long (px)
   spawn: { x: number; y: number }; // tile the first kaiju stands in (others line up to the right)
   ents: EntDef[];
 }
@@ -61,6 +68,9 @@ export class LevelBuilder {
   hot(x: number, y: number, w: number, h = 1): this { return this.fill(x, y, w, h, TILE_HOT); }
   ice(x: number, y: number, w: number, h = 1): this { return this.fill(x, y, w, h, TILE_ICE); }
   icicles(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_ICICLE); }
+  traps(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_TRAP); }
+  tetherLen?: number;
+  tie(len: number): this { this.tetherLen = len; return this; }
   /** Standard floor (rows 16-17) and side walls. */
   room(): this {
     this.solid(0, 16, this.w, 2);
@@ -71,7 +81,7 @@ export class LevelBuilder {
   start(x: number, y = 15): this { this.spawn = { x, y }; return this; }
   add(...e: EntDef[]): this { this.ents.push(...e); return this; }
   build(): LevelDef {
-    return { name: this.name, world: this.world, intro: this.intro, w: this.w, h: this.h, tiles: this.tiles, recipe: this.recipe, spawn: this.spawn, ents: this.ents };
+    return { name: this.name, world: this.world, intro: this.intro, w: this.w, h: this.h, tiles: this.tiles, recipe: this.recipe, tether: this.tetherLen, spawn: this.spawn, ents: this.ents };
   }
 }
 

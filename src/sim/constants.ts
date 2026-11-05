@@ -32,6 +32,10 @@ export const PHYS = {
   iceAccel: 380, // on ice you slide
   spicy: 8, // seconds a chili lasts
   pickupRespawn: 5,
+  tether: 170, // default noodle length between neighbouring kaiju
+  robot: { w: 104, h: 112, run: 150, jumpV: 870, weight: 6 }, // Pot Mech (jump ≈ 4 tiles)
+  lowGrav: 0.42, // moon-gravity ticket
+  speedy: 1.5,
 };
 
 export const TIMING = {
@@ -61,7 +65,9 @@ export const SPECIES = [
   { name: 'ONIGIRILLA', full: 'Onigirilla', food: 'rice-ball gorilla', color: 0xdfe6ee, css: '#eef3f8' },
 ];
 
-export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce' | 'milk' | 'berry' | 'butter' | 'yogurt';
+export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce' | 'milk' | 'berry' | 'butter' | 'yogurt' | 'honey' | 'cereal' | 'flour' | 'pasta' | 'melon';
+/** Too heavy for a kaiju: only the Pot Mech's arm can carry these. */
+export const HEAVY: ItemKind[] = ['melon'];
 export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
   bread: { name: 'Bread', color: 0xe8b25c },
   cheese: { name: 'Cheese', color: 0xffd23a },
@@ -73,4 +79,9 @@ export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
   berry: { name: 'Strawberry', color: 0xe8394a },
   butter: { name: 'Butter', color: 0xfff0a0 },
   yogurt: { name: 'Yogurt', color: 0xffc0d8 },
+  honey: { name: 'Honey', color: 0xf0a020 },
+  cereal: { name: 'Cereal', color: 0x4a8ad8 },
+  flour: { name: 'Flour', color: 0xf4ead8 },
+  pasta: { name: 'Pasta', color: 0xf0d060 },
+  melon: { name: 'Watermelon', color: 0x3a9a3a },
 };

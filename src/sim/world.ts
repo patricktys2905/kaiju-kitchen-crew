@@ -4,8 +4,8 @@
 // Physics model: axis-aligned boxes. Kaiju and sugar cubes are solid to each other, so you can stand on
 // a friend's head (and get carried when they move or jump). Lifts/doors/scales/toasters/pots are solid
 // fixtures. Ingredients are not solid: they are carried above a kaiju's head, thrown, or lie around.
-import { ITEMS, PHYS, STEP, T, TIMING, WORLD_VIEW as VIEW, type ItemKind } from './constants';
-import { isHazardTile, resolveNeed, TILE_HOT, TILE_ICE, TILE_SHELF, TILE_SOLID, type LevelDef, type PickupKind } from './level';
+import { HEAVY, ITEMS, PHYS, STEP, T, TIMING, WORLD_VIEW as VIEW, type ItemKind } from './constants';
+import { isHazardTile, resolveNeed, TILE_HOT, TILE_ICE, TILE_SHELF, TILE_SOLID, type LevelDef, type PickupKind, type TicketRule } from './level';
 
 export interface PlayerInput {
   mx: number; // -1..1
@@ -16,7 +16,7 @@ export const NO_INPUT: PlayerInput = { mx: 0, jump: false, grab: false };
 
 export interface Box { x: number; y: number; w: number; h: number }
 
-type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner' | 'jelly' | 'block';
+type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner' | 'jelly' | 'block' | 'robot';
 interface BodyBase extends Box { kind: Kind; idx: number }
 
 export interface Player extends BodyBase {
@@ -35,6 +35,7 @@ export interface Player extends BodyBase {
   big: boolean; // ate a cookie
   spicyT: number; // ate a chili: melts ice
   fizz: boolean; // drank soda: next jump is a big one
+  inRobot: number; // index of the Pot Mech this kaiju is crewing, or -1
 }
 export interface Crate extends BodyBase { kind: 'crate'; vx: number; vy: number; need: number; weight: number; homeX: number; homeY: number; pushers: number }
 export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number }
@@ -45,7 +46,21 @@ export interface Pot extends BodyBase { kind: 'pot' }
 export interface Burner extends BodyBase { kind: 'burner'; cold: number; hot: number; offset: number; state: 'cold' | 'warn' | 'hot' }
 export interface Jelly extends BodyBase { kind: 'jelly'; on?: string; frozen: boolean; wobble: number }
 export interface Block extends BodyBase { kind: 'block'; mat: 'ice' | 'cracker'; broken: boolean; breakT: number }
-export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner | Jelly | Block;
+/** The Pot Mech: kaiju climb in (GRAB) and each crew seat works one part: legs, jump, arm. */
+export interface Robot extends BodyBase { kind: 'robot'; vx: number; vy: number; facing: 1 | -1; grounded: boolean; crew: number[]; carry: number; homeX: number; homeY: number; ckX: number; ckY: number; landT: number; armT: number }
+export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner | Jelly | Block | Robot;
+type Mover = Player | Crate | Robot;
+/** item.carrier values >= this mean "held by robot (carrier - ROBOT_CARRIER)". */
+export const ROBOT_CARRIER = 1000;
+export interface Ticket { x: number; rule: TicketRule; dur: number; fired: boolean }
+export type RobotRole = 'all' | 'legs' | 'jump' | 'arm' | 'jump+arm' | 'ride';
+export function robotRole(seat: number, crew: number): RobotRole {
+  if (crew === 1) return 'all';
+  if (seat === 0) return 'legs';
+  if (seat === 1) return crew === 2 ? 'jump+arm' : 'jump';
+  if (seat === 2) return 'arm';
+  return 'ride';
+}
 export interface Pickup { kind: PickupKind; x: number; y: number; respawn: number }
 
 export interface Item { idx: number; kind: ItemKind; x: number; y: number; vx: number; vy: number; carrier: number; delivered: boolean; homeX: number; homeY: number; thrower: number; throwT: number; grounded: boolean }
@@ -58,6 +73,9 @@ export type Phase = 'play' | 'splat' | 'clear';
 export type GameEvent =
   | { type: 'jump' | 'land' | 'pickup' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
   | { type: 'melt' | 'smash'; block: number }
+  | { type: 'board' | 'exit' | 'heavy' | 'robotJump' | 'robotLand'; p: number }
+  | { type: 'ticket'; rule: TicketRule }
+  | { type: 'ticketEnd' }
   | { type: 'good' | 'wrong' | 'burn'; item: number }
   | { type: 'recipeDone' | 'clear' | 'respawn' | 'check' | 'scaleOn' | 'scaleOff' | 'toast' | 'door' | 'burnerHot' };
 
@@ -82,6 +100,11 @@ export class World {
   jellies: Jelly[] = [];
   blocks: Block[] = [];
   pickups: Pickup[] = [];
+  robots: Robot[] = [];
+  tickets: Ticket[] = [];
+  rule: TicketRule | null = null; // current order-ticket rule
+  ruleT = 0; // seconds left (0 = until the next ticket)
+  tetherLen = 0;
   items: Item[] = [];
   levers: Lever[] = [];
   checks: Checkpoint[] = [];
@@ -124,12 +147,19 @@ export class World {
         case 'burner': this.burners.push({ kind: 'burner', idx: this.burners.length, x: e.x * T, y: e.y * T, w: e.w * T, h: T, cold: e.cold, hot: e.hot, offset: e.offset ?? 0, state: 'cold' }); break;
         case 'check': this.checks.push({ x: e.x * T, y: e.y * T, tx: e.x, ty: e.y }); break;
         case 'sign': this.signs.push({ x: e.x * T, y: e.y * T, text: e.text }); break;
+        case 'robot': {
+          const x = e.x * T + (3 * T - PHYS.robot.w) / 2, y = (e.y + 3) * T - PHYS.robot.h;
+          this.robots.push({ kind: 'robot', idx: this.robots.length, x, y, w: PHYS.robot.w, h: PHYS.robot.h, vx: 0, vy: 0, facing: 1, grounded: false, crew: [], carry: -1, homeX: x, homeY: y, ckX: x, ckY: y, landT: 0, armT: 0 });
+          break;
+        }
+        case 'ticket': this.tickets.push({ x: e.x * T, rule: e.rule, dur: e.dur ?? 0, fired: false }); break;
         case 'pickup': this.pickups.push({ kind: e.kind, x: e.x * T + 4, y: e.y * T + 4, respawn: 0 }); break;
         case 'jelly': this.jellies.push({ kind: 'jelly', idx: this.jellies.length, on: e.on, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, frozen: false, wobble: 0 }); break;
         case 'block': this.blocks.push({ kind: 'block', idx: this.blocks.length, mat: e.mat, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, broken: false, breakT: 0 }); break;
       }
     }
     this.fixtures = [...this.lifts, ...this.doors, ...this.scales, ...this.toasters, ...this.pots, ...this.burners, ...this.jellies, ...this.blocks];
+    this.tetherLen = level.tether ?? 0;
     this.placeTeam(level.spawn.x, level.spawn.y);
     this.updateCamera();
   }
@@ -137,14 +167,14 @@ export class World {
   private makePlayer(idx: number, species: number, name: string): Player {
     return {
       kind: 'player', idx, species, name, x: 0, y: 0, w: PHYS.pw, h: PHYS.ph, vx: 0, vy: 0, facing: 1, grounded: false,
-      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false,
+      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false, inRobot: -1,
     };
   }
 
   /** Lines the team up from a tile (3 across, then stacked on each other's heads). */
   private placeTeam(tx: number, ty: number): void {
     this.players.forEach((p, i) => {
-      p.big = false; p.spicyT = 0; p.fizz = false; p.w = PHYS.pw; p.h = PHYS.ph;
+      p.big = false; p.spicyT = 0; p.fizz = false; p.w = PHYS.pw; p.h = PHYS.ph; p.inRobot = -1;
       p.x = tx * T + 3 + (i % 3) * T;
       p.y = (ty + 1) * T - PHYS.ph - Math.floor(i / 3) * (PHYS.ph + 2);
       p.vx = p.vy = 0;
@@ -184,8 +214,11 @@ export class World {
     this.updateLifts();
     this.updateToasters();
     this.updateCrates();
+    this.updateTickets();
     this.updateCamera();
+    this.updateRobots(inputs);
     this.updatePlayers(inputs);
+    this.applyTether();
     this.updateItems();
     this.updatePickups();
     this.checkHazards();
@@ -217,7 +250,8 @@ export class World {
       out.push(f);
     }
     for (const c of this.crates) if (c !== b) out.push(c);
-    if (!forItem) for (const p of this.players) if (p !== b) out.push(p);
+    for (const r of this.robots) if (r !== b) out.push(r);
+    if (!forItem) for (const p of this.players) if (p !== b && p.inRobot < 0) out.push(p);
     return out;
   }
 
@@ -259,15 +293,16 @@ export class World {
   }
 
   /** Kaiju and cubes standing directly on top of `b`. */
-  ridersOf(b: Box, depthGuard = 0): (Player | Crate)[] {
+  ridersOf(b: Box, depthGuard = 0): Mover[] {
     if (depthGuard > 12) return [];
-    const out: (Player | Crate)[] = [];
-    const test = (r: Player | Crate) => {
-      if (r === b) return;
+    const out: Mover[] = [];
+    const test = (r: Mover) => {
+      if (r === b || (r.kind === 'player' && r.inRobot >= 0)) return;
       if (Math.abs(r.y + r.h - b.y) < 0.6 && r.x < b.x + b.w - EPS && r.x + r.w > b.x + EPS) out.push(r);
     };
     this.players.forEach(test);
     this.crates.forEach(test);
+    this.robots.forEach(test);
     return out;
   }
 
@@ -278,17 +313,17 @@ export class World {
     for (const r of this.ridersOf(b)) {
       if (seen.has(r)) continue;
       seen.add(r);
-      w += (r.kind === 'player' ? (r.big ? 3 : 1) : r.weight) + this.weightOn(r, depth + 1, seen);
+      w += (r.kind === 'player' ? (r.big ? 3 : 1) : r.kind === 'robot' ? PHYS.robot.weight : r.weight) + this.weightOn(r, depth + 1, seen);
     }
     return w;
   }
 
   /** Moves a kaiju/cube sideways; whatever stands on it comes along. */
-  private moveX(b: Player | Crate, dx: number, depth = 0): number {
+  private moveX(b: Mover, dx: number, depth = 0): number {
     if (!dx || depth > 12) return 0;
     const riders = this.ridersOf(b);
     let d = this.sweepX(b, dx, this.solidsFor(b));
-    if (b.kind === 'player' && depth === 0) {
+    if ((b.kind === 'player' || b.kind === 'robot') && depth === 0) {
       // Shared screen: the camera edges act as walls, so nobody can wander off on their own.
       const left = this.camX + PHYS.edge, right = this.camX + VIEW.w - PHYS.edge;
       if (d < 0 && b.x + d < left) d = Math.min(0, Math.max(d, left - b.x));
@@ -300,7 +335,7 @@ export class World {
   }
 
   /** Moves a kaiju/cube vertically. Going up pushes the whole stack on top of it first. */
-  private moveY(b: Player | Crate, dy: number, depth = 0): number {
+  private moveY(b: Mover, dy: number, depth = 0): number {
     if (!dy || depth > 12) return 0;
     if (dy < 0) for (const r of this.ridersOf(b)) this.moveY(r, dy, depth + 1);
     const d = this.sweepY(b, dy, this.solidsFor(b));
@@ -339,7 +374,7 @@ export class World {
         const next = Math.max(0, d.open - TIMING.doorSpeed * STEP);
         // never close onto someone
         const box = { x: d.x, y: d.topY, w: d.w, h: d.fullH * (1 - next) };
-        const blocked = [...this.players, ...this.crates].some(b => overlap(box, b));
+        const blocked = [...this.players.filter(p => p.inRobot < 0), ...this.crates, ...this.robots].some(b => overlap(box, b));
         if (!blocked) d.open = next;
       }
       d.y = d.topY;
@@ -381,7 +416,7 @@ export class World {
   /** Moves a lift; riders come along, anyone underneath/beside blocks it. Returns false if blocked. */
   private moveKinematic(l: Lift, dx: number, dy: number): boolean {
     const riders = this.ridersOf(l);
-    const others = [...this.players, ...this.crates].filter(b => !riders.includes(b));
+    const others = [...this.players.filter(p => p.inRobot < 0), ...this.crates, ...this.robots].filter(b => !riders.includes(b));
     const nb = { x: l.x + dx, y: l.y + dy, w: l.w, h: l.h };
     if (others.some(o => overlap(nb, o) && !overlap(l, o))) return false;
     if (dy < 0) for (const r of riders) this.moveY(r, dy, 1);
@@ -392,7 +427,7 @@ export class World {
     return true;
   }
 
-  private carryDown(b: Player | Crate, dy: number, depth = 0): void {
+  private carryDown(b: Mover, dy: number, depth = 0): void {
     if (depth > 12) return;
     const riders = this.ridersOf(b);
     const d = this.moveY(b, dy, 1);
@@ -466,6 +501,7 @@ export class World {
     // lowest kaiju first, so a stack moves bottom-up
     const order = [...this.players].sort((a, b) => b.y - a.y);
     for (const p of order) {
+      if (p.inRobot >= 0) continue; // crewing the Pot Mech (handled in updateRobots)
       const inp = inputs[p.idx] ?? NO_INPUT;
       const jumpEdge = inp.jump && !p.jumpPrev;
       const grabEdge = inp.grab && !p.grabPrev;
@@ -497,12 +533,12 @@ export class World {
       }
       if (!inp.jump && p.vy < 0 && p.canCut) { p.vy *= PHYS.jumpCut; p.canCut = false; }
 
-      const mx = Math.max(-1, Math.min(1, inp.mx));
+      const mx = Math.max(-1, Math.min(1, inp.mx)) * (this.rule === 'reverse' ? -1 : 1);
       if (Math.abs(mx) > 0.2) p.facing = mx > 0 ? 1 : -1;
-      const target = Math.abs(mx) > 0.2 ? mx * PHYS.run : 0;
+      const target = Math.abs(mx) > 0.2 ? mx * PHYS.run * (this.rule === 'speedy' ? PHYS.speedy : 1) : 0;
       const acc = (under === 'ice' ? PHYS.iceAccel : p.grounded ? PHYS.accelGround : PHYS.accelAir) * STEP;
       p.vx = p.vx < target ? Math.min(target, p.vx + acc) : Math.max(target, p.vx - acc);
-      p.vy = Math.min(PHYS.maxFall, p.vy + PHYS.gravity * STEP);
+      p.vy = Math.min(this.maxFall, p.vy + this.gravity * STEP);
 
       const wantX = p.vx * STEP;
       const dX = this.moveX(p, wantX);
@@ -540,6 +576,7 @@ export class World {
       if (grabEdge) this.grab(p);
     }
     for (const p of this.players) {
+      if (p.inRobot >= 0) continue;
       p.grounded = p.vy >= 0 && this.isGrounded(p, p);
       if (p.grounded && this.isSafeGround(p)) { p.safeX = p.x; p.safeY = p.y; }
     }
@@ -586,7 +623,14 @@ export class World {
       const d = Math.abs(it.x - p.x) + Math.abs(it.y - p.y);
       if (d < bestD) { bestD = d; best = it; }
     }
-    if (best) { this.pick(p, best); return; }
+    if (best) {
+      if (HEAVY.includes(best.kind)) { this.events.push({ type: 'heavy', p: p.idx }); return; }
+      this.pick(p, best);
+      return;
+    }
+    for (const r of this.robots) {
+      if (overlap(reach, r)) { this.board(p, r); return; }
+    }
     for (const l of this.levers) {
       if (overlap(reach, { x: l.x + 4, y: l.y, w: T - 8, h: T })) {
         this.leverOn.set(l.id, !this.leverOn.get(l.id));
@@ -610,6 +654,12 @@ export class World {
   private updateItems(): void {
     for (const it of this.items) {
       if (it.delivered) continue;
+      if (it.carrier >= ROBOT_CARRIER) {
+        const r = this.robots[it.carrier - ROBOT_CARRIER];
+        it.x = r.facing > 0 ? r.x + r.w - 4 : r.x - PHYS.item + 4;
+        it.y = r.y + 18 - Math.sin(r.armT * 6) * 6;
+        continue;
+      }
       if (it.carrier >= 0) {
         const p = this.players[it.carrier];
         it.x = p.x + p.w / 2 - PHYS.item / 2;
@@ -617,7 +667,7 @@ export class World {
         continue;
       }
       it.throwT = Math.max(0, it.throwT - STEP);
-      it.vy = Math.min(PHYS.maxFall, it.vy + PHYS.gravity * STEP);
+      it.vy = Math.min(this.maxFall, it.vy + this.gravity * STEP);
       const box = { x: it.x, y: it.y, w: PHYS.item, h: PHYS.item };
       const solids = this.solidsFor(null, true);
       const dx = this.sweepX(box, it.vx * STEP, solids);
@@ -639,7 +689,7 @@ export class World {
       // a friend catches it out of the air
       if (!it.grounded) {
         for (const p of this.players) {
-          if (p.carry >= 0 || (p.idx === it.thrower && it.throwT > 0)) continue;
+          if (p.carry >= 0 || p.inRobot >= 0 || HEAVY.includes(it.kind) || (p.idx === it.thrower && it.throwT > 0)) continue;
           if (overlap(ib, p)) { this.pick(p, it); this.events.push({ type: 'catch', p: p.idx }); break; }
         }
         if (it.carrier >= 0) continue;
@@ -683,7 +733,13 @@ export class World {
 
   // ------------------------------------------------------------------ hazards, checkpoints, exit
   private checkHazards(): void {
+    for (const r of this.robots) {
+      const probe = { x: r.x + 2, y: r.y - 1, w: r.w - 4, h: r.h + 2 };
+      const hot = this.tileHits(probe, null).some(t => isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T))));
+      if (hot || r.y > this.H + 40) { this.splat(this.players[r.crew[0] ?? 0]); return; }
+    }
     for (const p of this.players) {
+      if (p.inRobot >= 0) continue;
       const probe = { x: p.x + 2, y: p.y, w: p.w - 4, h: p.h + 1 };
       const reach = { x: probe.x, y: probe.y - 1, w: probe.w, h: probe.h + 1 }; // icicles hang above
       const onHot = this.tileHits(reach, null).some(t => isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T))));
@@ -711,6 +767,7 @@ export class World {
       it.vx = it.vy = 0;
       pl.carry = -1;
     }
+    for (const r of this.robots) { r.crew = []; r.x = r.ckX; r.y = r.ckY; r.vx = r.vy = 0; }
     const cp = this.checkpoint >= 0 ? this.checks[this.checkpoint] : null;
     if (cp) this.placeTeam(cp.tx, cp.ty); else this.placeTeam(this.level.spawn.x, this.level.spawn.y);
     this.phase = 'play';
@@ -724,12 +781,20 @@ export class World {
     this.checks.forEach((c, i) => {
       if (i <= this.checkpoint) return;
       const zone = { x: c.x - 4, y: c.y - 2 * T, w: T + 8, h: 3 * T };
-      if (this.players.some(p => overlap(p, zone))) { this.checkpoint = i; this.events.push({ type: 'check' }); }
+      if (this.players.some(p => overlap(p, zone))) {
+        this.checkpoint = i;
+        for (const r of this.robots) if (r.grounded) { r.ckX = r.x; r.ckY = r.y; }
+        this.events.push({ type: 'check' });
+      }
     });
   }
 
   /** On the plate = centre over it, standing on it (or on a friend who is). */
   onPlate(p: Player): boolean {
+    if (p.inRobot >= 0) {
+      const r = this.robots[p.inRobot];
+      return r.grounded && this.plates.some(pl => r.x + r.w / 2 >= pl.x && r.x + r.w / 2 <= pl.x + pl.w && r.y + r.h <= pl.y + 1);
+    }
     return this.plates.some(pl => {
       const cx = p.x + p.w / 2;
       return cx >= pl.x && cx <= pl.x + pl.w && p.y + p.h <= pl.y + 1 && p.y + p.h > pl.y - 6 * T;
@@ -742,6 +807,143 @@ export class World {
       this.phase = 'clear';
       this.phaseT = 0;
       this.events.push({ type: 'clear' });
+    }
+  }
+
+  // ------------------------------------------------------------------ pantry: rules, tickets, noodle, Pot Mech
+  get gravity(): number { return PHYS.gravity * (this.rule === 'lowgrav' ? PHYS.lowGrav : 1); }
+  get maxFall(): number { return PHYS.maxFall * (this.rule === 'lowgrav' ? 0.55 : 1); }
+
+  private updateTickets(): void {
+    if (this.rule && this.ruleT > 0) {
+      this.ruleT -= STEP;
+      if (this.ruleT <= 0) { this.rule = null; this.ruleT = 0; this.events.push({ type: 'ticketEnd' }); }
+    }
+    const front = Math.max(...this.players.map(p => p.x + p.w / 2));
+    for (const t of this.tickets) {
+      if (t.fired || front < t.x) continue;
+      t.fired = true;
+      if (t.rule === 'untie') this.tetherLen = 0;
+      else { this.rule = t.rule; this.ruleT = t.dur; }
+      this.events.push({ type: 'ticket', rule: t.rule });
+    }
+  }
+
+  /** The noodle: neighbouring kaiju (in player order) stay within tetherLen of each other.
+   *  Whoever is standing holds; whoever is in the air gets pulled (so you can dangle, swing and be hauled up). */
+  private applyTether(): void {
+    const L = this.tetherLen;
+    if (!L) return;
+    for (let iter = 0; iter < 3; iter++) {
+      for (let k = 0; k + 1 < this.players.length; k++) {
+        const a = this.players[k], b = this.players[k + 1];
+        if (a.inRobot >= 0 || b.inRobot >= 0) continue;
+        const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
+        const dist = Math.hypot(dx, dy);
+        if (dist <= L) continue;
+        const nx = dx / dist, ny = dy / dist, excess = dist - L;
+        const ga = a.grounded, gb = b.grounded;
+        const sa = ga && !gb ? 0 : !ga && gb ? 1 : 0.5; // share of the correction a takes
+        const sb = 1 - sa;
+        if (sb) { this.moveX(b, -nx * excess * sb, 1); this.moveY(b, -ny * excess * sb, 1); }
+        if (sa) { this.moveX(a, nx * excess * sa, 1); this.moveY(a, ny * excess * sa, 1); }
+        // remove the stretching part of their velocities
+        const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rel > 0) {
+          b.vx -= nx * rel * sb; b.vy -= ny * rel * sb;
+          a.vx += nx * rel * sa; a.vy += ny * rel * sa;
+        }
+      }
+    }
+  }
+
+  private board(p: Player, r: Robot): void {
+    if (p.carry >= 0) { const it = this.items[p.carry]; it.carrier = -1; p.carry = -1; }
+    p.inRobot = r.idx;
+    r.crew.push(p.idx);
+    this.events.push({ type: 'board', p: p.idx });
+  }
+
+  private leave(p: Player, r: Robot): void {
+    r.crew = r.crew.filter(i => i !== p.idx);
+    p.inRobot = -1;
+    p.x = r.x + r.w / 2 - p.w / 2;
+    p.y = r.y - p.h - 1;
+    if (this.tileHits(p, null).length) { p.x = r.facing > 0 ? r.x - p.w - 1 : r.x + r.w + 1; p.y = r.y + r.h - p.h; }
+    p.vx = 0; p.vy = -350;
+    this.events.push({ type: 'exit', p: p.idx });
+  }
+
+  /** The arm: pick up / drop in the pot / throw. Returns false if there was nothing to do. */
+  private robotArm(r: Robot): boolean {
+    const reach = { x: r.facing > 0 ? r.x + r.w - 20 : r.x - 50, y: r.y - 10, w: 70, h: r.h + 20 };
+    if (r.carry >= 0) {
+      const it = this.items[r.carry];
+      r.carry = -1;
+      it.carrier = -1;
+      const pot = this.pots.find(k => overlap(reach, { x: k.x - 8, y: k.y - 40, w: k.w + 16, h: k.h + 40 }));
+      if (pot) { it.x = pot.x + pot.w / 2 - PHYS.item / 2; it.y = pot.y - PHYS.item / 2; it.vx = it.vy = 0; this.potCheck(it, pot); }
+      else { it.vx = r.facing * 300; it.vy = -420; it.thrower = -1; it.grounded = false; }
+      r.armT = 0.3;
+      return true;
+    }
+    const it = this.items.find(i => !i.delivered && i.carrier < 0 && overlap(reach, { x: i.x, y: i.y, w: PHYS.item, h: PHYS.item }));
+    if (!it) return false;
+    r.carry = it.idx;
+    it.carrier = ROBOT_CARRIER + r.idx;
+    r.armT = 0.3;
+    this.events.push({ type: 'pickup', p: r.crew[0] ?? 0 });
+    return true;
+  }
+
+  private updateRobots(inputs: PlayerInput[]): void {
+    for (const r of this.robots) {
+      r.landT = Math.max(0, r.landT - STEP);
+      r.armT = Math.max(0, r.armT - STEP);
+      let mx = 0, jumpEdge = false;
+      const leaving: Player[] = [];
+      const n = r.crew.length;
+      r.crew.forEach((pi, seat) => {
+        const p = this.players[pi];
+        const inp = inputs[pi] ?? NO_INPUT;
+        const je = inp.jump && !p.jumpPrev, ge = inp.grab && !p.grabPrev;
+        p.jumpPrev = inp.jump; p.grabPrev = inp.grab;
+        const role = robotRole(seat, n);
+        if (role === 'all' || role === 'legs') mx = Math.max(-1, Math.min(1, inp.mx)) * (this.rule === 'reverse' ? -1 : 1);
+        if (role === 'all' || role === 'jump' || role === 'jump+arm') jumpEdge ||= je;
+        if (ge) {
+          const armRole = role === 'all' || role === 'arm' || role === 'jump+arm';
+          if (!(armRole && this.robotArm(r))) leaving.push(p);
+        }
+      });
+      for (const p of leaving) this.leave(p, r);
+
+      r.grounded = r.vy >= 0 && this.isGrounded(r, r);
+      if (Math.abs(mx) > 0.2) r.facing = mx > 0 ? 1 : -1;
+      const target = Math.abs(mx) > 0.2 ? mx * PHYS.robot.run * (this.rule === 'speedy' ? PHYS.speedy : 1) : 0;
+      const acc = (r.grounded ? 1800 : 1100) * STEP;
+      r.vx = r.vx < target ? Math.min(target, r.vx + acc) : Math.max(target, r.vx - acc);
+      if (jumpEdge && r.grounded) { r.vy = -PHYS.robot.jumpV; r.grounded = false; this.events.push({ type: 'robotJump', p: r.crew[0] ?? 0 }); }
+      r.vy = Math.min(this.maxFall, r.vy + this.gravity * STEP);
+      const wantX = r.vx * STEP;
+      if (Math.abs(this.moveX(r, wantX) - wantX) > 0.001 && this.tileHits({ x: r.x + Math.sign(wantX), y: r.y, w: r.w, h: r.h }, null).length) r.vx = 0;
+      const wantY = r.vy * STEP;
+      if (Math.abs(this.moveY(r, wantY) - wantY) > 0.001) {
+        if (r.vy > 400) { r.landT = 0.2; this.events.push({ type: 'robotLand', p: r.crew[0] ?? 0 }); }
+        r.vy = 0;
+      }
+      r.grounded = r.vy >= 0 && this.isGrounded(r, r);
+      // the Mech smashes cracker walls it walks into
+      if (Math.abs(mx) > 0.2) {
+        const probe = { x: r.x + (mx > 0 ? 3 : -3), y: r.y, w: r.w, h: r.h };
+        for (const b of this.blocks) if (b.mat === 'cracker' && !b.broken && overlap(probe, b)) this.breakBlock(b);
+      }
+      // the crew ride inside
+      for (const pi of r.crew) {
+        const p = this.players[pi];
+        p.x = r.x + r.w / 2 - p.w / 2; p.y = r.y + r.h / 2 - p.h / 2;
+        p.vx = r.vx; p.vy = r.vy; p.grounded = r.grounded; p.facing = r.facing;
+      }
     }
   }
 
@@ -776,7 +978,7 @@ export class World {
       if (pk.respawn > 0) { pk.respawn = Math.max(0, pk.respawn - STEP); continue; }
       const box = { x: pk.x, y: pk.y, w: T - 8, h: T - 8 };
       for (const p of this.players) {
-        if (!overlap(p, box)) continue;
+        if (p.inRobot >= 0 || !overlap(p, box)) continue;
         let used = false;
         if (pk.kind === 'cookie' && !p.big) used = this.resize(p, true);
         else if (pk.kind === 'lemon' && p.big) used = this.resize(p, false);

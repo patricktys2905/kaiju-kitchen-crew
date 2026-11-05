@@ -1,0 +1,23 @@
+[
+  {
+    "name": "ob-robot",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a VEHICLE sprite in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright colours, smooth cel shading with glossy highlights. Side view facing RIGHT: a cute chunky giant ROBOT KAIJU built from kitchen things: a big steel cooking pot body with a round porthole window in the middle, a saucepan for a head with two bolt eyes and a ladle antenna, two short sturdy legs made of tin cans with frying-pan feet, one arm made of a whisk and a big ladle hand held out in front. Friendly, roughly as wide as tall. Solid flat magenta (#FF00FF) background, no shadow, no text, nothing else. Square 1:1."
+  },
+  { "name": "ob-trap", "prompt": "Next sprite, exactly the same style, side view, solid flat magenta (#FF00FF) background: a wooden MOUSETRAP seen from the side and slightly above, wide and low (about 3 times wider than tall), a shiny metal snapping bar and spring, with a tiny piece of cheese on it. Square 1:1." },
+  { "name": "ob-ticket", "prompt": "Next sprite, same style, front view, solid flat magenta (#FF00FF) background: a restaurant ORDER TICKET slip of white paper, slightly curled, with a red stripe at the top and a few lines of blank space (no readable writing, no letters). Taller than wide. Square 1:1." },
+  { "name": "it-honey", "prompt": "Next sprite, same style, solid flat magenta (#FF00FF) background, no face: a small round glass HONEY jar with golden honey and a cloth lid tied with string. Square 1:1." },
+  { "name": "it-cereal", "prompt": "Next sprite, same style, solid flat magenta (#FF00FF) background, no face, no readable text: a small colourful CEREAL BOX with cereal loops pictured on the front. Square 1:1." },
+  { "name": "it-flour", "prompt": "Next sprite, same style, solid flat magenta (#FF00FF) background, no face, no readable text: a small paper FLOUR sack tied at the top with a little flour dust puff. Square 1:1." },
+  { "name": "it-pasta", "prompt": "Next sprite, same style, solid flat magenta (#FF00FF) background, no face: a bundle of dry yellow SPAGHETTI tied with a red ribbon. Square 1:1." },
+  { "name": "it-melon", "prompt": "Next sprite, same style, solid flat magenta (#FF00FF) background, no face: one big round striped green WATERMELON. Square 1:1." },
+  {
+    "name": "bg-pantry",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer set in a giant kitchen. I need the BACKGROUND for levels inside a giant cosy PANTRY cupboard, in the same soft chunky cartoon game art style (clean outlines, warm soft shading). Straight-on view of the back wall of a big wooden pantry: warm dark-honey wooden back panels, blurry shelves far behind stacked with cereal boxes, jam jars, tins, pasta jars, onions in a basket, a hanging string of garlic, soft warm lamp light from above. Calm and slightly soft so characters stand out. IMPORTANT: no shelf or floor in the foreground at the bottom, no characters, no text. Wide 16:9 landscape."
+  },
+  { "name": "bg-pantry2", "prompt": "Another background, same style, same pantry, continuing to the right: warm wooden back wall, blurry tins, flour sacks, spice jars and a hanging bunch of dried herbs far behind, soft warm light. Calm and soft. Nothing in the foreground at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-pantry", "prompt": "Now a seamless TILEABLE texture in the same style: rough warm honey-brown wooden PANTRY SHELF boards, horizontal planks with wood grain and a few small knots, flat straight-on view, evenly lit, tiles seamlessly in all directions. Square 1:1." }
+]

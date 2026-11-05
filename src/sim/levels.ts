@@ -3,6 +3,7 @@
 // tall, so a 3-tile wall needs 1 friend to stand on, a 4-tile ledge needs 2 (or a cube + a friend),
 // and nothing over ~7 tiles can be stacked even by 6, so the toaster is needed.
 import { LevelBuilder, type LevelDef } from './level';
+import { FRIDGE_LEVELS } from './levels-fridge';
 
 function shelfHelp(): LevelDef {
   const b = new LevelBuilder('Shelf Help', 'Counter Top', 'Get everyone up the counter and cook some toast!', 46, ['bread']).room();
@@ -126,4 +127,5 @@ function sandwichRush(): LevelDef {
   return b.start(2).build();
 }
 
-export const LEVELS: LevelDef[] = [shelfHelp(), weighIn(), sugarCubes(), popUp(), hotHob(), sandwichRush()];
+export const COUNTER_LEVELS: LevelDef[] = [shelfHelp(), weighIn(), sugarCubes(), popUp(), hotHob(), sandwichRush()];
+export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS];

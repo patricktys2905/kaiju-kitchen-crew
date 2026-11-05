@@ -316,6 +316,14 @@ export class GameScene extends Phaser.Scene {
         case 'check': sfx.check(); { const c = w.checks[w.checkpoint]; if (c) this.popup('Checkpoint!', c.x + T / 2, c.y - 80, '#9dff8a'); } break;
         case 'burnerHot': sfx.burnerHot(); break;
         case 'clear': sfx.clear(); break;
+        case 'grow': sfx.grow(); this.popup('BIG!', w.players[e.p].x + w.players[e.p].w / 2, w.players[e.p].y - 30, '#ffd27a'); break;
+        case 'shrink': sfx.shrink(); break;
+        case 'spicy': sfx.spicy(); this.popup('SPICY!', w.players[e.p].x + w.players[e.p].w / 2, w.players[e.p].y - 30, '#ff7a4a'); break;
+        case 'fizz': sfx.fizz(); this.popup('Fizzy!', w.players[e.p].x + w.players[e.p].w / 2, w.players[e.p].y - 30, '#9fe0ff'); break;
+        case 'fizzJump': sfx.fizzJump(); break;
+        case 'bounce': sfx.bounce(); break;
+        case 'melt': sfx.melt(); break;
+        case 'smash': sfx.smash(); this.cameras.main.shake(120, 0.004); break;
       }
     }
   }
@@ -366,7 +374,7 @@ export class GameScene extends Phaser.Scene {
     // kaiju
     w.players.forEach((p, i) => {
       const img = this.kaiju[i];
-      const hgt = 64;
+      const hgt = 64 * (p.h / PHYS.ph);
       const base = img.texture.key === '__WHITE' ? 1 : hgt / img.height;
       const walking = p.grounded && Math.abs(p.vx) > 30;
       const bob = walking ? Math.abs(Math.sin(time * 16 + i)) * 3 : 0;
@@ -389,7 +397,16 @@ export class GameScene extends Phaser.Scene {
         const mine = d.mode === 'host' ? i === 0 : i === d.seat;
         label = mine ? `▼ ${p.name}` : p.name;
       }
-      img.setTint(asleep ? 0xb8b8c8 : 0xffffff);
+      img.setTint(asleep ? 0xb8b8c8 : p.spicyT > 0 && Math.sin(time * 20) > 0 ? 0xff9a7a : 0xffffff);
+      // spicy flames / soda bubbles
+      if (p.spicyT > 0) for (let k = 0; k < 3; k++) {
+        const ph = (time * 2 + k / 3) % 1;
+        this.front.fillStyle(k % 2 ? 0xffb030 : 0xff4a1c, 0.85 * (1 - ph)).fillCircle(p.x + 6 + k * (p.w - 12) / 2, p.y - ph * 30, 7 * (1 - ph) + 2);
+      }
+      if (p.fizz) for (let k = 0; k < 4; k++) {
+        const ph = (time * 1.5 + k / 4) % 1;
+        this.front.lineStyle(2, 0xbfeaff, 0.9 * (1 - ph)).strokeCircle(p.x + p.w / 2 + Math.sin(time * 4 + k * 2) * p.w * 0.6, p.y + p.h - ph * 60, 3 + k % 2 * 2);
+      }
       const tag = this.tags[i];
       tag.setText(label);
       const carryLift = p.carry >= 0 ? PHYS.item : 0;

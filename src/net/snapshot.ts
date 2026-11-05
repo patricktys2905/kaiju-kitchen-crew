@@ -1,5 +1,6 @@
 // Compact snapshots for online play. The host's World is the only real simulation; guests build the
 // same level locally (so all the static parts already exist) and copy the moving parts in.
+import { PHYS } from '../sim/constants';
 import type { Phase, World } from '../sim/world';
 
 const PHASES: Phase[] = ['play', 'splat', 'clear'];
@@ -17,12 +18,18 @@ export interface Snapshot {
   t: number[]; // toaster popT
   b: number[]; // burner state 0 cold 1 warn 2 hot
   lv: string[]; // levers that are on
+  k?: number[]; // pickups respawn
+  j?: number[][]; // jelly frozen wobble
+  bl?: number[][]; // blocks broken breakT
 }
 
 export function makeSnapshot(w: World): Snapshot {
   return {
     ph: PHASES.indexOf(w.phase), pt: r2(w.phaseT), lt: r2(w.levelT), sp: w.splats, sw: w.splatWho, dl: w.delivered, ck: w.checkpoint, cam: r1(w.camX),
-    p: w.players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), p.facing, p.carry, p.grounded ? 1 : 0, r2(p.landT)]),
+    p: w.players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), p.facing, p.carry, p.grounded ? 1 : 0, r2(p.landT), p.big ? 1 : 0, r2(p.spicyT), p.fizz ? 1 : 0]),
+    k: w.pickups.map(pk => r2(pk.respawn)),
+    j: w.jellies.map(j => [j.frozen ? 1 : 0, r2(j.wobble)]),
+    bl: w.blocks.map(b => [b.broken ? 1 : 0, r2(b.breakT)]),
     i: w.items.map(it => [r1(it.x), r1(it.y), it.carrier, it.delivered ? 1 : 0]),
     c: w.crates.map(c => [r1(c.x), r1(c.y), c.pushers]),
     l: w.lifts.map(l => [r1(l.x), r1(l.y)]),
@@ -51,7 +58,15 @@ export function applySnapshot(w: World, s: Snapshot): void {
     p.carry = a[5];
     p.grounded = a[6] === 1;
     p.landT = a[7];
+    p.big = a[8] === 1;
+    p.w = p.big ? PHYS.big.w : PHYS.pw;
+    p.h = p.big ? PHYS.big.h : PHYS.ph;
+    p.spicyT = a[9] ?? 0;
+    p.fizz = a[10] === 1;
   });
+  s.k?.forEach((v, i) => { const pk = w.pickups[i]; if (pk) pk.respawn = v; });
+  s.j?.forEach((a, i) => { const j = w.jellies[i]; if (j) { j.frozen = a[0] === 1; j.wobble = a[1]; } });
+  s.bl?.forEach((a, i) => { const b = w.blocks[i]; if (b) { b.broken = a[0] === 1; b.breakT = a[1]; } });
   s.i.forEach((a, k) => {
     const it = w.items[k];
     if (!it) return;

@@ -9,6 +9,11 @@ export const TILE_EMPTY = 0;
 export const TILE_SOLID = 1;
 export const TILE_SHELF = 2; // jump up through, stand on top
 export const TILE_HOT = 3; // always-hot hob: solid, splats on touch
+export const TILE_ICE = 4; // slippery floor
+export const TILE_ICICLE = 5; // icicles: solid, splats on touch
+export const isHazardTile = (t: number) => t === TILE_HOT || t === TILE_ICICLE;
+
+export type PickupKind = 'cookie' | 'lemon' | 'chili' | 'soda';
 
 export type EntDef =
   | { t: 'item'; kind: ItemKind; x: number; y: number }
@@ -22,6 +27,9 @@ export type EntDef =
   | { t: 'toaster'; on: string; x: number; y: number } // 2 x 1, launches whoever stands on it when `on` switches
   | { t: 'burner'; x: number; y: number; w: number; cold: number; hot: number; offset?: number }
   | { t: 'check'; x: number; y: number }
+  | { t: 'pickup'; kind: PickupKind; x: number; y: number } // eaten on touch, grows back
+  | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
+  | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
   | { t: 'sign'; x: number; y: number; text: string };
 
 export interface LevelDef {
@@ -51,6 +59,8 @@ export class LevelBuilder {
   clear(x: number, y: number, w: number, h: number): this { return this.fill(x, y, w, h, TILE_EMPTY); }
   shelf(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_SHELF); }
   hot(x: number, y: number, w: number, h = 1): this { return this.fill(x, y, w, h, TILE_HOT); }
+  ice(x: number, y: number, w: number, h = 1): this { return this.fill(x, y, w, h, TILE_ICE); }
+  icicles(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_ICICLE); }
   /** Standard floor (rows 16-17) and side walls. */
   room(): this {
     this.solid(0, 16, this.w, 2);

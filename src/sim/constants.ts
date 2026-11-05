@@ -26,6 +26,12 @@ export const PHYS = {
   throwStill: { vx: 120, vy: -760 }, // standing still: toss up (to a friend on a ledge)
   throwMove: { vx: 380, vy: -480 }, // moving: lob forward
   edge: 6, // shared-screen margin
+  big: { w: 50, h: 56 }, // after eating a cookie: a big friend is a 4-tile step (56 + 110)
+  fizzV: 1000, // soda jump (≈ 5.5 tiles)
+  bounceV: 1000, // jelly bounce
+  iceAccel: 380, // on ice you slide
+  spicy: 8, // seconds a chili lasts
+  pickupRespawn: 5,
 };
 
 export const TIMING = {
@@ -55,7 +61,7 @@ export const SPECIES = [
   { name: 'ONIGIRILLA', full: 'Onigirilla', food: 'rice-ball gorilla', color: 0xdfe6ee, css: '#eef3f8' },
 ];
 
-export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce';
+export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce' | 'milk' | 'berry' | 'butter' | 'yogurt';
 export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
   bread: { name: 'Bread', color: 0xe8b25c },
   cheese: { name: 'Cheese', color: 0xffd23a },
@@ -63,4 +69,8 @@ export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
   egg: { name: 'Egg', color: 0xfff6e6 },
   ham: { name: 'Ham', color: 0xf28a9a },
   lettuce: { name: 'Lettuce', color: 0x7ccf4a },
+  milk: { name: 'Milk', color: 0xf4f8ff },
+  berry: { name: 'Strawberry', color: 0xe8394a },
+  butter: { name: 'Butter', color: 0xfff0a0 },
+  yogurt: { name: 'Yogurt', color: 0xffc0d8 },
 };

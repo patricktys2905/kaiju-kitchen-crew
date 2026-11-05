@@ -1,0 +1,11 @@
+[
+  {
+    "name": "bg-fridge",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer set in a giant kitchen. I need the BACKGROUND for the levels INSIDE A GIANT FRIDGE, in the same soft chunky cartoon game art style (clean outlines, soft shading). Straight-on view of the back wall inside a big fridge: smooth white and pale icy-blue plastic back wall with gentle moulded ridges, a glowing fridge light at the top, a few blurry jars, milk bottles and vegetables far in the back, a little frost in the corners, cool blue-white light. Calm and slightly soft so characters stand out. IMPORTANT: no shelves in the foreground, no floor, nothing at the bottom, no characters, no text. Wide 16:9 landscape."
+  },
+  { "name": "bg-fridge2", "prompt": "Another background, same style, same fridge interior, continuing to the right: white and icy-blue plastic back wall with moulded ridges, a temperature dial, some frost and a few blurry jam jars and eggs far in the back. Calm and soft. No foreground shelves, no floor, nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-fridge", "prompt": "Now a seamless TILEABLE texture in the same style: smooth white fridge plastic with very subtle pale-blue moulded panel lines, flat straight-on, evenly lit, simple, tiles seamlessly in all directions. Square 1:1." },
+  { "name": "tex-ice", "prompt": "Another seamless TILEABLE texture, same style: a frozen ICE surface, pale blue with white frost streaks and small bubbles, flat straight-on, evenly lit, tiles seamlessly in all directions. Square 1:1." }
+]

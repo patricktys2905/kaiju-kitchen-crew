@@ -16,12 +16,12 @@ const OUT = path.resolve('public/art');
 // name pattern -> max output size (longest side) for sprites
 const SPRITES = [
   [/^kaiju-\d+$/, 512],
-  [/^ob-[a-z]+$/, 512],
+  [/^ob-[a-z-]+$/, 512],
   [/^it-[a-z]+$/, 192],
 ];
 const TABLES = [];
 // backgrounds: cropped to size, no background removal. Textures stay square.
-const BACKGROUNDS = { 'bg-kitchen': [1920, 1080], 'bg-kitchen2': [1920, 1080], 'bg-menu': [1920, 1080], 'tex-cabinet': [512, 512], 'tex-marble': [512, 512] };
+const BACKGROUNDS = { 'bg-kitchen': [1920, 1080], 'bg-kitchen2': [1920, 1080], 'bg-menu': [1920, 1080], 'bg-fridge': [1920, 1080], 'bg-fridge2': [1920, 1080], 'tex-cabinet': [512, 512], 'tex-marble': [512, 512], 'tex-fridge': [512, 512], 'tex-ice': [512, 512] };
 
 fs.mkdirSync(OUT, { recursive: true });
 const files = fs.existsSync(RAW) ? fs.readdirSync(RAW).filter(f => /\.(png|jpe?g|webp)$/i.test(f)) : [];

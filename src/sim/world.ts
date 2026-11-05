@@ -5,7 +5,7 @@
 // a friend's head (and get carried when they move or jump). Lifts/doors/scales/toasters/pots are solid
 // fixtures. Ingredients are not solid: they are carried above a kaiju's head, thrown, or lie around.
 import { ITEMS, PHYS, STEP, T, TIMING, WORLD_VIEW as VIEW, type ItemKind } from './constants';
-import { resolveNeed, TILE_HOT, TILE_SHELF, TILE_SOLID, type LevelDef } from './level';
+import { isHazardTile, resolveNeed, TILE_HOT, TILE_ICE, TILE_SHELF, TILE_SOLID, type LevelDef, type PickupKind } from './level';
 
 export interface PlayerInput {
   mx: number; // -1..1
@@ -16,7 +16,7 @@ export const NO_INPUT: PlayerInput = { mx: 0, jump: false, grab: false };
 
 export interface Box { x: number; y: number; w: number; h: number }
 
-type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner';
+type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner' | 'jelly' | 'block';
 interface BodyBase extends Box { kind: Kind; idx: number }
 
 export interface Player extends BodyBase {
@@ -32,6 +32,9 @@ export interface Player extends BodyBase {
   pushing: Body | null; pushDir: number;
   safeX: number; safeY: number;
   landT: number; // for the squash animation
+  big: boolean; // ate a cookie
+  spicyT: number; // ate a chili: melts ice
+  fizz: boolean; // drank soda: next jump is a big one
 }
 export interface Crate extends BodyBase { kind: 'crate'; vx: number; vy: number; need: number; weight: number; homeX: number; homeY: number; pushers: number }
 export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number }
@@ -40,7 +43,10 @@ export interface Scale extends BodyBase { kind: 'scale'; id: string; need: numbe
 export interface Toaster extends BodyBase { kind: 'toaster'; on: string; popT: number }
 export interface Pot extends BodyBase { kind: 'pot' }
 export interface Burner extends BodyBase { kind: 'burner'; cold: number; hot: number; offset: number; state: 'cold' | 'warn' | 'hot' }
-export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner;
+export interface Jelly extends BodyBase { kind: 'jelly'; on?: string; frozen: boolean; wobble: number }
+export interface Block extends BodyBase { kind: 'block'; mat: 'ice' | 'cracker'; broken: boolean; breakT: number }
+export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner | Jelly | Block;
+export interface Pickup { kind: PickupKind; x: number; y: number; respawn: number }
 
 export interface Item { idx: number; kind: ItemKind; x: number; y: number; vx: number; vy: number; carrier: number; delivered: boolean; homeX: number; homeY: number; thrower: number; throwT: number; grounded: boolean }
 export interface Lever { id: string; x: number; y: number; flipT: number }
@@ -50,7 +56,8 @@ export interface Sign { x: number; y: number; text: string }
 
 export type Phase = 'play' | 'splat' | 'clear';
 export type GameEvent =
-  | { type: 'jump' | 'land' | 'pickup' | 'throw' | 'catch' | 'lever' | 'splat'; p: number }
+  | { type: 'jump' | 'land' | 'pickup' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
+  | { type: 'melt' | 'smash'; block: number }
   | { type: 'good' | 'wrong' | 'burn'; item: number }
   | { type: 'recipeDone' | 'clear' | 'respawn' | 'check' | 'scaleOn' | 'scaleOff' | 'toast' | 'door' | 'burnerHot' };
 
@@ -72,6 +79,9 @@ export class World {
   toasters: Toaster[] = [];
   pots: Pot[] = [];
   burners: Burner[] = [];
+  jellies: Jelly[] = [];
+  blocks: Block[] = [];
+  pickups: Pickup[] = [];
   items: Item[] = [];
   levers: Lever[] = [];
   checks: Checkpoint[] = [];
@@ -114,9 +124,12 @@ export class World {
         case 'burner': this.burners.push({ kind: 'burner', idx: this.burners.length, x: e.x * T, y: e.y * T, w: e.w * T, h: T, cold: e.cold, hot: e.hot, offset: e.offset ?? 0, state: 'cold' }); break;
         case 'check': this.checks.push({ x: e.x * T, y: e.y * T, tx: e.x, ty: e.y }); break;
         case 'sign': this.signs.push({ x: e.x * T, y: e.y * T, text: e.text }); break;
+        case 'pickup': this.pickups.push({ kind: e.kind, x: e.x * T + 4, y: e.y * T + 4, respawn: 0 }); break;
+        case 'jelly': this.jellies.push({ kind: 'jelly', idx: this.jellies.length, on: e.on, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, frozen: false, wobble: 0 }); break;
+        case 'block': this.blocks.push({ kind: 'block', idx: this.blocks.length, mat: e.mat, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, broken: false, breakT: 0 }); break;
       }
     }
-    this.fixtures = [...this.lifts, ...this.doors, ...this.scales, ...this.toasters, ...this.pots, ...this.burners];
+    this.fixtures = [...this.lifts, ...this.doors, ...this.scales, ...this.toasters, ...this.pots, ...this.burners, ...this.jellies, ...this.blocks];
     this.placeTeam(level.spawn.x, level.spawn.y);
     this.updateCamera();
   }
@@ -124,13 +137,14 @@ export class World {
   private makePlayer(idx: number, species: number, name: string): Player {
     return {
       kind: 'player', idx, species, name, x: 0, y: 0, w: PHYS.pw, h: PHYS.ph, vx: 0, vy: 0, facing: 1, grounded: false,
-      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0,
+      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false,
     };
   }
 
   /** Lines the team up from a tile (3 across, then stacked on each other's heads). */
   private placeTeam(tx: number, ty: number): void {
     this.players.forEach((p, i) => {
+      p.big = false; p.spicyT = 0; p.fizz = false; p.w = PHYS.pw; p.h = PHYS.ph;
       p.x = tx * T + 3 + (i % 3) * T;
       p.y = (ty + 1) * T - PHYS.ph - Math.floor(i / 3) * (PHYS.ph + 2);
       p.vx = p.vy = 0;
@@ -164,6 +178,7 @@ export class World {
     }
     this.levelT += STEP;
     this.updateSwitches();
+    this.updateFridge();
     this.updateDoors();
     this.updateBurners();
     this.updateLifts();
@@ -172,6 +187,7 @@ export class World {
     this.updateCamera();
     this.updatePlayers(inputs);
     this.updateItems();
+    this.updatePickups();
     this.checkHazards();
     if (this.phase !== 'play') return;
     this.updateCheckpoints();
@@ -197,6 +213,7 @@ export class World {
       if (f === b) continue;
       if (forItem && f.kind === 'pot') continue; // ingredients fall into the pot
       if (f.kind === 'door' && f.h < 1) continue;
+      if (f.kind === 'block' && f.broken) continue;
       out.push(f);
     }
     for (const c of this.crates) if (c !== b) out.push(c);
@@ -261,7 +278,7 @@ export class World {
     for (const r of this.ridersOf(b)) {
       if (seen.has(r)) continue;
       seen.add(r);
-      w += (r.kind === 'player' ? 1 : r.weight) + this.weightOn(r, depth + 1, seen);
+      w += (r.kind === 'player' ? (r.big ? 3 : 1) : r.weight) + this.weightOn(r, depth + 1, seen);
     }
     return w;
   }
@@ -430,7 +447,7 @@ export class World {
           if (p.pushDir !== dir || !p.grounded) continue;
           let cur: Body | null = p.pushing, guard = 0;
           while (cur && cur.kind === 'player' && cur.pushDir === dir && guard++ < 8) cur = cur.pushing;
-          if (cur === c) n++;
+          if (cur === c) n += p.big ? 2 : 1;
         }
         if (n > c.pushers) { c.pushers = n; this.crateDir.set(c, dir); }
       }
@@ -457,10 +474,21 @@ export class World {
       p.landT = Math.max(0, p.landT - STEP);
 
       p.grounded = p.vy >= 0 && this.isGrounded(p, p);
+      p.spicyT = Math.max(0, p.spicyT - STEP);
+      const under = p.grounded ? this.groundUnder(p) : null;
+      if (under === 'jelly') {
+        // boing: jelly throws you up (and whoever is standing on you)
+        p.vy = -PHYS.bounceV;
+        p.grounded = false;
+        p.canCut = false;
+        p.coyote = 0;
+        this.events.push({ type: 'bounce', p: p.idx });
+      }
       if (p.grounded) p.coyote = PHYS.coyote; else p.coyote -= STEP;
       if (jumpEdge) p.buffer = PHYS.jumpBuffer; else p.buffer -= STEP;
       if (p.buffer > 0 && p.coyote > 0) {
-        p.vy = -PHYS.jumpV;
+        p.vy = p.fizz ? -PHYS.fizzV : -PHYS.jumpV;
+        if (p.fizz) { p.fizz = false; this.events.push({ type: 'fizzJump', p: p.idx }); }
         p.buffer = 0;
         p.coyote = 0;
         p.canCut = true;
@@ -472,7 +500,7 @@ export class World {
       const mx = Math.max(-1, Math.min(1, inp.mx));
       if (Math.abs(mx) > 0.2) p.facing = mx > 0 ? 1 : -1;
       const target = Math.abs(mx) > 0.2 ? mx * PHYS.run : 0;
-      const acc = (p.grounded ? PHYS.accelGround : PHYS.accelAir) * STEP;
+      const acc = (under === 'ice' ? PHYS.iceAccel : p.grounded ? PHYS.accelGround : PHYS.accelAir) * STEP;
       p.vx = p.vx < target ? Math.min(target, p.vx + acc) : Math.max(target, p.vx - acc);
       p.vy = Math.min(PHYS.maxFall, p.vy + PHYS.gravity * STEP);
 
@@ -499,6 +527,16 @@ export class World {
         }
       }
 
+      // big kaiju smash cracker walls they push against
+      if (p.big && Math.abs(mx) > 0.2) {
+        const probe = { x: p.x + (mx > 0 ? 3 : -3), y: p.y, w: p.w, h: p.h };
+        for (const b of this.blocks) if (b.mat === 'cracker' && !b.broken && overlap(probe, b)) this.breakBlock(b);
+      }
+      // spicy kaiju melt ice they touch
+      if (p.spicyT > 0) {
+        const probe = { x: p.x - 3, y: p.y - 3, w: p.w + 6, h: p.h + 6 };
+        for (const b of this.blocks) if (b.mat === 'ice' && !b.broken && overlap(probe, b)) this.breakBlock(b);
+      }
       if (grabEdge) this.grab(p);
     }
     for (const p of this.players) {
@@ -513,7 +551,7 @@ export class World {
     const probe = { x: p.x, y: p.y + 1, w: p.w, h: p.h };
     const tiles = this.tileHits(probe, p.y + p.h);
     if (!tiles.length) return false;
-    for (const t of tiles) if (this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)) === TILE_HOT) return false;
+    for (const t of tiles) if (isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)))) return false;
     return !this.burners.some(b => overlap(probe, b));
   }
 
@@ -647,7 +685,8 @@ export class World {
   private checkHazards(): void {
     for (const p of this.players) {
       const probe = { x: p.x + 2, y: p.y, w: p.w - 4, h: p.h + 1 };
-      const onHot = this.tileHits(probe, null).some(t => this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)) === TILE_HOT);
+      const reach = { x: probe.x, y: probe.y - 1, w: probe.w, h: probe.h + 1 }; // icicles hang above
+      const onHot = this.tileHits(reach, null).some(t => isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T))));
       const onBurner = this.burners.some(b => b.state === 'hot' && overlap(probe, b));
       if (onHot || onBurner || p.y > this.H + 40) { this.splat(p); return; }
     }
@@ -704,6 +743,65 @@ export class World {
       this.phaseT = 0;
       this.events.push({ type: 'clear' });
     }
+  }
+
+  // ------------------------------------------------------------------ fridge: jelly, ice, pickups
+  private updateFridge(): void {
+    for (const j of this.jellies) {
+      j.frozen = j.on !== undefined && this.switchOn(j.on);
+      j.wobble = Math.max(0, j.wobble - STEP);
+    }
+    for (const b of this.blocks) if (b.broken) b.breakT = Math.min(1, b.breakT + STEP * 2.5);
+  }
+
+  /** What a grounded kaiju is standing on: bouncy jelly, slippery ice, or ordinary ground (null). */
+  private groundUnder(p: Player): 'jelly' | 'ice' | null {
+    const probe = { x: p.x, y: p.y + 1, w: p.w, h: p.h };
+    for (const j of this.jellies) {
+      if (!overlap(probe, j) || overlap(p, j)) continue;
+      if (!j.frozen) { j.wobble = 0.3; return 'jelly'; }
+      return 'ice';
+    }
+    for (const t of this.tileHits(probe, p.y + p.h)) if (this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)) === TILE_ICE) return 'ice';
+    return null;
+  }
+
+  private breakBlock(b: Block): void {
+    b.broken = true;
+    this.events.push({ type: b.mat === 'ice' ? 'melt' : 'smash', block: b.idx });
+  }
+
+  private updatePickups(): void {
+    for (const pk of this.pickups) {
+      if (pk.respawn > 0) { pk.respawn = Math.max(0, pk.respawn - STEP); continue; }
+      const box = { x: pk.x, y: pk.y, w: T - 8, h: T - 8 };
+      for (const p of this.players) {
+        if (!overlap(p, box)) continue;
+        let used = false;
+        if (pk.kind === 'cookie' && !p.big) used = this.resize(p, true);
+        else if (pk.kind === 'lemon' && p.big) used = this.resize(p, false);
+        else if (pk.kind === 'chili') { p.spicyT = PHYS.spicy; used = true; this.events.push({ type: 'spicy', p: p.idx }); }
+        else if (pk.kind === 'soda' && !p.fizz) { p.fizz = true; used = true; this.events.push({ type: 'fizz', p: p.idx }); }
+        if (used) { pk.respawn = PHYS.pickupRespawn; break; }
+      }
+    }
+  }
+
+  /** Grow (cookie) or shrink (lemon drop), keeping the feet in place. Fails if there is no room to grow. */
+  private resize(p: Player, big: boolean): boolean {
+    const nw = big ? PHYS.big.w : PHYS.pw, nh = big ? PHYS.big.h : PHYS.ph;
+    const cx = p.x + p.w / 2, bottom = p.y + p.h;
+    const riders = this.ridersOf(p);
+    const solids = this.solidsFor(p).filter(s => !riders.includes(s as Player));
+    for (const dx of [0, -8, 8, -16, 16]) {
+      const box = { x: cx - nw / 2 + dx, y: bottom - nh, w: nw, h: nh };
+      if (this.tileHits(box, null).length || solids.some(s => overlap(box, s))) continue;
+      if (big) for (const r of riders) this.moveY(r, -(nh - p.h), 1);
+      p.x = box.x; p.y = box.y; p.w = nw; p.h = nh; p.big = big;
+      this.events.push({ type: big ? 'grow' : 'shrink', p: p.idx });
+      return true;
+    }
+    return false;
   }
 
   drainEvents(): GameEvent[] {

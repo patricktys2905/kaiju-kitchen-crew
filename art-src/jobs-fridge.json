@@ -1,0 +1,19 @@
+[
+  {
+    "name": "ob-cookie",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need more PROP sprites in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Side view, one object per image, centred, filling about 85% of the frame, solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1. First: one round CHOCOLATE CHIP COOKIE standing on its edge, seen from the front (a round cookie disc, golden with chocolate chips)."
+  },
+  { "name": "ob-lemon", "prompt": "Next prop, exactly the same style and framing, solid flat magenta (#FF00FF) background, no face: one yellow LEMON DROP sweet in a clear twisted candy wrapper. Square 1:1." },
+  { "name": "ob-chili", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one shiny red CHILI PEPPER with a green stem, with two tiny flame shapes near it to show it is spicy. Square 1:1." },
+  { "name": "ob-soda", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a small green glass SODA BOTTLE with a red cap, bubbles fizzing up around it. Square 1:1." },
+  { "name": "ob-jelly", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a wobbly translucent bright green JELLY block (gelatin), a cube shape with rounded top, glossy and bouncy-looking, front view. Square 1:1." },
+  { "name": "ob-ice", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one big clear pale-blue ICE CUBE block, a square front view, frosty edges and a shine. Square 1:1." },
+  { "name": "ob-cracker", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a tall upright stack of square golden CRACKERS piled on top of each other like a wall (about 2 times taller than wide), front view, little salt dots and holes. Square 1:1." },
+  { "name": "ob-glass-shelf", "prompt": "Next prop, same style, front view, solid flat magenta (#FF00FF) background: a fridge GLASS SHELF, a very wide and thin pale-blue glass plate with a white plastic front trim strip. Very wide and thin. Square 1:1." },
+  { "name": "it-milk", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a small MILK carton (white and blue, gable top). Square 1:1." },
+  { "name": "it-berry", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one shiny red STRAWBERRY with green leaves. Square 1:1." },
+  { "name": "it-butter", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one pale yellow block of BUTTER on a tiny paper wrapper. Square 1:1." },
+  { "name": "it-yogurt", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one small pot of YOGURT with a pink foil lid. Square 1:1." }
+]

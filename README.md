@@ -22,6 +22,13 @@ standing still tosses up to a friend, moving lobs forward) · swap Q or Right-Sh
 5. **Hot Hob**: hobs that heat up on a cycle, a shuttle spatula, checkpoints
 6. **Sandwich Rush**: everything together, a 4-step recipe
 
+## World 2: The Fridge
+Snacks float a little off the ground: jump into them. Cookies make you BIG (heavier, pushes like two,
+smashes crackers, a taller step for friends, too big for mouse holes); lemon drops shrink you back;
+chili melts ice walls; soda gives one huge jump. Ice floors slide, jelly bounces (frozen while the
+freezer is on), icicles splat.
+7. **Cookie Monster** 8. **Heavy Snack** 9. **Slippery Slope** 10. **Deep Freeze** 11. **Hot Stuff** 12. **Fridge Raid**
+
 ## Develop
 ```
 npm install
@@ -34,4 +41,5 @@ npm run smoke:online # host + phone over the real matchmaking server (needs inte
 ```
 Code: `src/sim` is the Phaser-free simulation (physics, gadgets, recipe, levels in `levels.ts`),
 `src/scenes` the screens, `src/render` the drawing, `src/net` online play.
-Kaiju art is shared with Kitchen Kaiju (`public/art`). Icons: `node scripts/make-icons.mjs`.
+Kaiju art is shared with Kitchen Kaiju; the kitchen and fridge art is from Gemini
+(`art-src/jobs-*.json` → `node scripts/gem-gen.mjs <jobs>` with the Gemini Chrome on port 9333 → `npm run art`). Icons: `node scripts/make-icons.mjs`.

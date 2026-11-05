@@ -73,5 +73,13 @@ export const sfx = {
   respawn: () => tone(500, 0.2, 'sine', 0.05, 500),
   check: () => { tone(784, 0.08, 'triangle', 0.06); tone(1175, 0.16, 'triangle', 0.06, 0, 0.07); },
   burnerHot: () => noise(0.5, 0.05, 1600),
+  grow: () => { tone(160, 0.35, 'square', 0.06, -60); tone(110, 0.4, 'sine', 0.1, -30, 0.05); },
+  shrink: () => tone(700, 0.3, 'sine', 0.06, 600),
+  spicy: () => { noise(0.4, 0.12, 2500); tone(300, 0.3, 'sawtooth', 0.04, 500); },
+  fizz: () => { noise(0.35, 0.06, 6000); tone(1400, 0.2, 'sine', 0.03, 600); },
+  fizzJump: () => { noise(0.3, 0.1, 5000); tone(400, 0.35, 'triangle', 0.07, 900); },
+  bounce: () => tone(200, 0.18, 'sine', 0.09, 420),
+  melt: () => { noise(0.6, 0.1, 1200); tone(900, 0.4, 'sine', 0.04, -600); },
+  smash: () => { noise(0.35, 0.2, 2200); tone(140, 0.2, 'square', 0.08, -60); },
   clear: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.2, 'triangle', 0.07, 0, i * 0.11)); },
 };

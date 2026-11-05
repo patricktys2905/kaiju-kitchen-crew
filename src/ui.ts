@@ -27,6 +27,7 @@ const CSS = `
 .panel .seat button { font-size: 16px; padding: 6px 12px; }
 .panel .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
 .panel .levels button { font-size: 16px; padding: 8px; text-align: left; line-height: 1.15; }
+.panel .world { font-family: 'Luckiest Guy', 'Arial Black', sans-serif; letter-spacing: 0.04em; color: #ffcf8a; font-size: 16px; margin-top: 10px; }
 .panel .levels button small { display: block; font-family: Nunito, Arial, sans-serif; font-weight: 800; font-size: 12px; opacity: 0.8; letter-spacing: 0; }
 .panel .status { margin-top: 12px; font-size: 16px; }
 .panel .status.bad { color: #ff8a7a; }
@@ -75,8 +76,9 @@ export function fmtTime(t: number): string {
 
 export function levelGrid(selected: number, enabled = true): string {
   const prog = loadProgress();
-  return `<div class="levels">${LEVELS.map((l, i) => `<button data-level="${i}" class="${i === selected ? 'on' : ''}" ${enabled ? '' : 'disabled'}>
-    ${i + 1}. ${esc(l.name)}<small>${prog[i] !== undefined ? `✓ best ${fmtTime(prog[i])}` : esc(l.world)}</small></button>`).join('')}</div>`;
+  const worlds = [...new Set(LEVELS.map(l => l.world))];
+  return worlds.map((wn, wi) => `<div class="world">World ${wi + 1}: ${esc(wn)}</div><div class="levels">${LEVELS.map((l, i) => (l.world !== wn ? '' : `<button data-level="${i}" class="${i === selected ? 'on' : ''}" ${enabled ? '' : 'disabled'}>
+    ${i + 1}. ${esc(l.name)}<small>${prog[i] !== undefined ? `✓ best ${fmtTime(prog[i])}` : '&nbsp;'}</small></button>`)).join('')}</div>`).join('');
 }
 
 export function seatRow(species: number, name: string, mine: boolean, extra = ''): string {

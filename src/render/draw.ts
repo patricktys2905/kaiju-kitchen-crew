@@ -1,8 +1,8 @@
 // Shape drawing for the kitchen: backdrop, counters, gadgets and ingredients. Kaiju use the art images.
 import type * as Phaser from 'phaser';
 import { fitInside, hasArt, type SpritePool } from './art';
-import { PHYS, T, type ItemKind } from '../sim/constants';
-import { TILE_HOT, TILE_SHELF, TILE_SOLID } from '../sim/level';
+import { ITEMS, PHYS, T, type ItemKind } from '../sim/constants';
+import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID } from '../sim/level';
 import type { World } from '../sim/world';
 
 type G = Phaser.GameObjects.Graphics;
@@ -14,15 +14,18 @@ const MARBLE = 0xece6dc, MARBLE_D = 0xcfc6b8;
 export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, w: World): void {
   const g = scene.add.graphics().setDepth(0.2);
   layer.add(g);
-  const art = hasArt('bg-kitchen') && hasArt('tex-cabinet');
+  const fridge = w.level.world === 'The Fridge';
+  const wallA = fridge ? 'bg-fridge' : 'bg-kitchen', wallB = fridge ? 'bg-fridge2' : 'bg-kitchen2';
+  const solidTex = fridge && hasArt('tex-fridge') ? 'tex-fridge' : 'tex-cabinet';
+  const art = hasArt(wallA) && hasArt(solidTex);
   if (!art) { drawStatic(g, w); return; }
-  // wall: the two kitchen paintings side by side, alternating (mirrored every other pair)
+  // wall: two paintings side by side, alternating (mirrored every other pair)
   const bh = w.H, bw = Math.round((bh * 16) / 9);
   for (let x = 0, k = 0; x < w.W; x += bw, k++) {
-    const key = k % 2 && hasArt('bg-kitchen2') ? 'bg-kitchen2' : 'bg-kitchen';
+    const key = k % 2 && hasArt(wallB) ? wallB : wallA;
     layer.add(scene.add.image(x, 0, key).setOrigin(0).setDisplaySize(bw, bh).setFlipX(k % 4 >= 2).setDepth(0));
   }
-  g.fillStyle(0x2a1408, 0.12).fillRect(0, 0, w.W, w.H); // calm the wall down a touch
+  g.fillStyle(fridge ? 0x0a2a40 : 0x2a1408, fridge ? 0.08 : 0.12).fillRect(0, 0, w.W, w.H); // calm the wall down a touch
   const tex = (key: string, cells: number, cellH: number) => {
     const t = scene.textures.get(key);
     if (!t.has('c0')) {
@@ -30,22 +33,24 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       for (let j = 0; j < cells; j++) for (let i = 0; i < cells; i++) t.add('c' + (j * cells + i), 0, i * sz, j * sz, sz, Math.min(sz, cellH || sz));
     }
   };
-  tex('tex-cabinet', 4, 0);
+  tex(solidTex, 4, 0);
   if (hasArt('tex-marble')) tex('tex-marble', 4, 40);
+  if (hasArt('tex-ice')) tex('tex-ice', 4, 0);
   const lv = w.level;
   // more cabinets below the level (seen on phones, where the camera sits lower)
-  for (let j = lv.h; j < lv.h + 3; j++) for (let i = 0; i < lv.w; i++) layer.add(scene.add.image(i * T, j * T, 'tex-cabinet', 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
+  for (let j = lv.h; j < lv.h + 3; j++) for (let i = 0; i < lv.w; i++) layer.add(scene.add.image(i * T, j * T, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
   const at = (i: number, j: number) => (i < 0 || i >= lv.w || j < 0 || j >= lv.h ? 0 : lv.tiles[j * lv.w + i]);
   for (let j = 0; j < lv.h; j++) for (let i = 0; i < lv.w; i++) {
     const t = at(i, j), x = i * T, y = j * T;
     if (t === TILE_SOLID) {
-      layer.add(scene.add.image(x, y, 'tex-cabinet', 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
+      layer.add(scene.add.image(x, y, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
       if (at(i, j + 1) !== TILE_SOLID) g.fillStyle(0x3a1f0e, 0.5).fillRect(x, y + T - 4, T, 4);
       if (at(i - 1, j) !== TILE_SOLID) g.fillStyle(0x3a1f0e, 0.35).fillRect(x, y, 3, T);
       if (at(i + 1, j) !== TILE_SOLID) g.fillStyle(0x3a1f0e, 0.35).fillRect(x + T - 3, y, 3, T);
       const above = at(i, j - 1);
       if (above !== TILE_SOLID && above !== TILE_HOT) {
-        if (hasArt('tex-marble')) layer.add(scene.add.image(x, y, 'tex-marble', 'c' + (i % 4)).setOrigin(0).setDisplaySize(T, 13).setDepth(0.15));
+        if (fridge) { g.fillStyle(0xe8f4fb, 1).fillRect(x, y, T, 10); g.fillStyle(0x9fc8e0, 1).fillRect(x, y + 8, T, 3); }
+        else if (hasArt('tex-marble')) layer.add(scene.add.image(x, y, 'tex-marble', 'c' + (i % 4)).setOrigin(0).setDisplaySize(T, 13).setDepth(0.15));
         else g.fillStyle(MARBLE, 1).fillRect(x, y, T, 12);
         g.fillStyle(0x8a7a66, 0.6).fillRect(x, y + 12, T, 2);
         g.fillStyle(0x000000, 0.12).fillRect(x, y + 14, T, 5);
@@ -53,11 +58,27 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
     } else if (t === TILE_SHELF && at(i - 1, j) !== TILE_SHELF) {
       let n = 1;
       while (at(i + n, j) === TILE_SHELF) n++;
-      if (hasArt('ob-shelf')) layer.add(scene.add.image(x - 4, y - 6, 'ob-shelf').setOrigin(0).setDisplaySize(n * T + 8, 34).setDepth(0.3));
+      const shelfKey = fridge && hasArt('ob-glass-shelf') ? 'ob-glass-shelf' : 'ob-shelf';
+      if (hasArt(shelfKey)) layer.add(scene.add.image(x - 4, y - 6, shelfKey).setOrigin(0).setDisplaySize(n * T + 8, fridge ? 22 : 34).setDepth(0.3));
       else for (let k = 0; k < n; k++) drawShelfTile(g, x + k * T, y, k === 0, k === n - 1);
     } else if (t === TILE_HOT) {
       drawHob(g, x, y, T, 2);
+    } else if (t === TILE_ICE) {
+      if (hasArt('tex-ice')) layer.add(scene.add.image(x, y, 'tex-ice', 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
+      else g.fillStyle(0xbfe6ff, 1).fillRect(x, y, T, T);
+      g.fillStyle(0xffffff, 0.8).fillRect(x, y, T, 4);
+    } else if (t === TILE_ICICLE) {
+      drawIcicles(g, x, y);
     }
+  }
+}
+
+function drawIcicles(g: G, x: number, y: number): void {
+  g.fillStyle(0xdff3ff, 1).fillRect(x, y, T, 8);
+  for (let k = 0; k < 4; k++) {
+    const ix = x + 5 + k * 10, len = 18 + ((k * 7) % 3) * 8;
+    g.fillStyle(0xbfe6ff, 1).fillTriangle(ix - 5, y + 6, ix + 5, y + 6, ix, y + 6 + len);
+    g.fillStyle(0xffffff, 0.8).fillTriangle(ix - 3, y + 6, ix - 1, y + 6, ix - 2, y + len * 0.7);
   }
 }
 
@@ -127,6 +148,11 @@ export function drawStatic(g: G, w: World): void {
       }
     } else if (t === TILE_HOT) {
       drawHob(g, x, y, T, 2);
+    } else if (t === TILE_ICE) {
+      g.fillStyle(0xbfe6ff, 1).fillRect(x, y, T, T);
+      g.fillStyle(0xffffff, 0.8).fillRect(x, y, T, 4);
+    } else if (t === TILE_ICICLE) {
+      drawIcicles(g, x, y);
     }
   }
 }
@@ -171,6 +197,13 @@ export function drawItem(g: G, kind: ItemKind, cx: number, cy: number, s = PHYS.
       g.fillStyle(0xd96a7a, 1).fillCircle(cx, cy, h);
       g.fillStyle(0xf6a3b0, 1).fillCircle(cx, cy, h - 3);
       g.lineStyle(2, 0xfbd3d9, 1).strokeCircle(cx + 1, cy - 1, h * 0.45);
+      break;
+    case 'milk':
+      g.fillStyle(0x3a7ad0, 1).fillRect(cx - h * 0.6, cy - h * 0.2, s * 0.6, h * 1.2);
+      g.fillStyle(0xffffff, 1).fillRect(cx - h * 0.6, cy - h, s * 0.6, h * 0.8);
+      break;
+    case 'berry': case 'butter': case 'yogurt':
+      g.fillStyle(ITEMS[kind].color, 1).fillCircle(cx, cy, h);
       break;
     case 'lettuce':
       g.fillStyle(0x4f9e2c, 1).fillCircle(cx, cy, h);
@@ -355,6 +388,58 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
       g.fillStyle(0xffffff, 1).fillRoundedRect(c.x + 2, c.y + 2, c.w - 8, c.h - 8, 5);
       g.fillStyle(0xeef4fa, 1);
       for (let k = 0; k < (c.w * c.h) / 400; k++) g.fillRect(c.x + 6 + ((k * 37) % (c.w - 14)), c.y + 6 + ((k * 23) % (c.h - 14)), 3, 3);
+    }
+  }
+  // snacks (cookie, lemon drop, chili, soda): bob gently; after being eaten they grow back
+  for (const pk of w.pickups) {
+    const cx = pk.x + (T - 8) / 2, cy = pk.y + (T - 8) / 2 + Math.sin(time * 3 + pk.x) * 3;
+    const key = 'ob-' + pk.kind;
+    const k = pk.respawn > 0 ? 1 - pk.respawn / PHYS.pickupRespawn : 1;
+    if (pk.respawn > 0 && k < 0.6) continue;
+    if (art(key)) {
+      const img = fitInside(pool!.take(key, 7), 38 * k, 38 * k).setPosition(cx, cy).setAlpha(pk.respawn > 0 ? 0.5 : 1);
+      img.setAngle(Math.sin(time * 2 + pk.y) * 8);
+    } else {
+      const col = pk.kind === 'cookie' ? 0xc8873a : pk.kind === 'lemon' ? 0xffe14a : pk.kind === 'chili' ? 0xe0301e : 0x3aa05a;
+      g.fillStyle(col, pk.respawn > 0 ? 0.5 : 1).fillCircle(cx, cy, 15 * k);
+    }
+    if (pk.respawn === 0) g.lineStyle(2, 0xffffff, 0.35 + 0.25 * Math.sin(time * 5 + pk.x)).strokeCircle(cx, cy, 22);
+  }
+  // jelly: wobbles; frozen = icy blue
+  for (const j of w.jellies) {
+    const sq = j.frozen ? 1 : 1 - Math.sin((0.3 - j.wobble) * 30) * j.wobble * 0.6;
+    if (art('ob-jelly')) {
+      const img = pool!.take('ob-jelly', 6).setOrigin(0.5, 1);
+      img.setDisplaySize(j.w + 8, (j.h + 12) * sq).setPosition(j.x + j.w / 2, j.y + j.h + 2);
+      if (j.frozen) img.setTint(0x9fd8ff);
+    } else {
+      g.fillStyle(j.frozen ? 0x9fd8ff : 0x7ad84a, 0.95).fillRoundedRect(j.x, j.y + j.h * (1 - sq), j.w, j.h * sq, 8);
+    }
+    if (j.frozen) {
+      g.fillStyle(0xffffff, 0.35).fillRect(j.x + 2, j.y - 2, j.w - 4, 5);
+      for (let k = 0; k < j.w / 20; k++) g.fillStyle(0xffffff, 0.8).fillCircle(j.x + 10 + k * 20, j.y + 8 + (k % 2) * 10, 2);
+    }
+  }
+  // ice walls (melt) and cracker walls (smash)
+  for (const b of w.blocks) {
+    if (b.broken && b.breakT >= 1) continue;
+    const a = b.broken ? 1 - b.breakT : 1;
+    const drop = b.broken ? b.breakT * (b.mat === 'ice' ? 20 : 60) : 0;
+    if (b.mat === 'ice') {
+      for (let yy = b.y; yy < b.y + b.h; yy += T) {
+        if (art('ob-ice')) pool!.take('ob-ice', 6).setOrigin(0, 0).setDisplaySize(b.w + 6, T + 4).setPosition(b.x - 3, yy - 2 + drop).setAlpha(a);
+        else g.fillStyle(0xbfe6ff, 0.9 * a).fillRect(b.x, yy + drop, b.w, T);
+      }
+      if (b.broken) for (let k = 0; k < 5; k++) g.fillStyle(0x7ac8ff, a * 0.7).fillCircle(b.x + 6 + k * 7, b.y + b.h - 4 + drop * 0.2, 6 * (1 - a) + 3);
+    } else {
+      if (art('ob-cracker')) {
+        for (let yy = b.y, k = 0; yy < b.y + b.h; yy += 2 * T, k++) {
+          const hh = Math.min(2 * T, b.y + b.h - yy);
+          pool!.take('ob-cracker', 6).setOrigin(0, 0).setDisplaySize(b.w + 10, hh + 4).setPosition(b.x - 5 + (b.broken ? (k % 2 ? 1 : -1) * drop * 0.6 : 0), yy - 2 + drop).setAlpha(a).setAngle(b.broken ? (k % 2 ? 1 : -1) * drop * 0.5 : 0);
+        }
+      } else {
+        g.fillStyle(0xd9a24a, a).fillRect(b.x, b.y + drop, b.w, b.h);
+      }
     }
   }
   // ingredients lying around (carried ones are drawn in front of the kaiju by the scene)

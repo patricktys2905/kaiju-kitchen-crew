@@ -34,7 +34,9 @@ describe('every level is well-formed', () => {
           const w = makeWorld(lvl, n);
           const cubeWeight = w.crates.reduce((s, c) => s + c.weight, 0);
           for (const s of w.scales) expect(s.need).toBeLessThanOrEqual(n + cubeWeight);
-          for (const c of w.crates) expect(c.need).toBeLessThanOrEqual(n);
+          // a BIG kaiju (cookie) pushes like two
+          const strength = lvl.ents.some(e => e.t === 'pickup' && e.kind === 'cookie') ? 2 * n : n;
+          for (const c of w.crates) expect(c.need).toBeLessThanOrEqual(strength);
         });
       }
     });

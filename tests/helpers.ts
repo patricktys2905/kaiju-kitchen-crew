@@ -50,7 +50,8 @@ export function walker(w: World, p: Player, x: number): Partial<PlayerInput> {
   const aheadX = dir > 0 ? p.x + p.w + 2 : p.x - 14;
   const floorProbe = { x: aheadX, y: p.y + p.h + 1, w: 12, h: 30 };
   const wallProbe = { x: aheadX, y: p.y, w: 12, h: p.h - 4 };
-  const hit = (b: { x: number; y: number; w: number; h: number }) => ww.tileHits(b, null).length > 0 || ww.solidsFor(p).some(s => s !== (p as unknown) && b.x < s.x + s.w && b.x + b.w > s.x && b.y < s.y + s.h && b.y + b.h > s.y);
+  // friends are not obstacles to jump over: just queue behind them
+  const hit = (b: { x: number; y: number; w: number; h: number }) => ww.tileHits(b, null).length > 0 || ww.solidsFor(p).some(s => (s as { kind?: string }).kind !== 'player' && b.x < s.x + s.w && b.x + b.w > s.x && b.y < s.y + s.h && b.y + b.h > s.y);
   const jump = (p.grounded && (!hit(floorProbe) || hit(wallProbe))) || (!p.grounded && p.vy < 0); // hold jump while rising
   return { mx: dir, jump };
 }

@@ -39,7 +39,7 @@ export type EntDef =
   | { t: 'melty'; x: number; y: number; w: number; h: number } // chocolate: melts while stood on, sets again later
   | { t: 'vent'; x: number; y: number; w: number; h: number; cold: number; hot: number; offset?: number } // steam column h tiles tall rising from row y
   | { t: 'jet'; x: number; y: number; w: number; h: number; dir: 1 | -1; cold?: number; hot?: number; offset?: number } // tap jet zone (cold 0 = always on)
-  | { t: 'water'; x: number; w: number; low: number; high: number; on?: string } // surface row when drained / filled (filled while `on`; no switch = always filled)
+  | { t: 'water'; x: number; w: number; low: number; high: number; on?: string; inv?: boolean } // inv: filled while the switch is OFF (pull the plug to drain) // surface row when drained / filled (filled while `on`; no switch = always filled)
   | { t: 'bubbler'; x: number; y: number; every: number } // soap bubbles you can ride up
   | { t: 'hand'; period: number; offset?: number } // the Chef's Hand slams where the team is (hide under something!)
   | { t: 'balance'; x1: number; x2: number; y: number; w: number; travel: number } // two pans: the heavier goes down, the other up

@@ -54,7 +54,7 @@ export interface Belt extends BodyBase { kind: 'belt'; dir: number; speed: numbe
 export interface Cycler { x: number; y: number; w: number; h: number; cold: number; hot: number; offset: number; state: 'cold' | 'warn' | 'hot' }
 export interface Vent extends Cycler {}
 export interface Jet extends Cycler { dir: number }
-export interface Water { x: number; w: number; low: number; high: number; on?: string; level: number }
+export interface Water { x: number; w: number; low: number; high: number; on?: string; inv?: boolean; level: number }
 export interface Bubbler { x: number; y: number; every: number; t: number }
 export type HandState = 'idle' | 'warn' | 'slam' | 'lift';
 export interface Hand { period: number; state: HandState; t: number; tx: number }
@@ -176,7 +176,7 @@ export class World {
         case 'melty': this.meltys.push({ kind: 'melty', idx: this.meltys.length, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, melt: 0, gone: false, regrow: 0 }); break;
         case 'vent': this.vents.push({ x: e.x * T, y: (e.y - e.h) * T, w: e.w * T, h: e.h * T, cold: e.cold, hot: e.hot, offset: e.offset ?? 0, state: 'cold' }); break;
         case 'jet': this.jets.push({ x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, dir: e.dir, cold: e.cold ?? 0, hot: e.hot ?? 1, offset: e.offset ?? 0, state: 'cold' }); break;
-        case 'water': this.waters.push({ x: e.x * T, w: e.w * T, low: e.low * T, high: e.high * T, on: e.on, level: e.on === undefined ? e.high * T : e.low * T }); break;
+        case 'water': this.waters.push({ x: e.x * T, w: e.w * T, low: e.low * T, high: e.high * T, on: e.on, inv: e.inv, level: e.on === undefined || e.inv ? e.high * T : e.low * T }); break;
         case 'bubbler': this.bubblers.push({ x: e.x * T, y: e.y * T, every: e.every, t: e.every * 0.6 }); break;
         case 'hand': this.hands.push({ period: e.period, state: 'idle', t: -(e.offset ?? 0), tx: 0 }); break;
         case 'balance': {
@@ -572,7 +572,7 @@ export class World {
       const water = this.waterAt(p.x + p.w / 2, p.y + p.h / 2);
       if (water) {
         // near the surface you can jump out; deeper down a jump is a swim stroke
-        if (p.y + p.h / 2 - water.level < 16) p.coyote = PHYS.coyote;
+        if (p.y + p.h / 2 - water.level < 34) p.coyote = PHYS.coyote;
         else if (p.buffer > 0) { p.vy = -PHYS.swimV; p.buffer = 0; this.events.push({ type: 'swim', p: p.idx }); }
       }
       if (p.buffer > 0 && p.coyote > 0) {
@@ -591,10 +591,11 @@ export class World {
       const target = Math.abs(mx) > 0.2 ? mx * PHYS.run * (this.rule === 'speedy' ? PHYS.speedy : 1) * (water ? 0.7 : 1) : 0;
       const acc = (under === 'ice' ? PHYS.iceAccel : p.grounded ? PHYS.accelGround : PHYS.accelAir) * STEP;
       p.vx = p.vx < target ? Math.min(target, p.vx + acc) : Math.max(target, p.vx - acc);
-      if (water) p.vy = Math.max(-PHYS.swimV, Math.min(260, p.vy * 0.92 - this.gravity * 0.35 * STEP)); // floaty
+      if (water) p.vy = Math.min(260, p.vy * (p.vy < -PHYS.swimV ? 0.97 : 0.92) - this.gravity * 0.35 * STEP); // floaty (a jump out keeps its speed)
       else p.vy = Math.min(this.maxFall, p.vy + this.gravity * STEP);
       for (const v of this.vents) if (v.state === 'hot' && overlap(p, v)) p.vy = Math.max(-PHYS.ventMax, p.vy - PHYS.ventAcc * STEP);
-      for (const j of this.jets) if (j.state === 'hot' && overlap(p, j)) p.vx = Math.max(-PHYS.jetMax, Math.min(PHYS.jetMax, p.vx + j.dir * PHYS.jetAcc * STEP));
+      // tap jets push you along on top of your own movement
+      for (const j of this.jets) if (j.state === 'hot' && overlap(p, j)) this.moveX(p, j.dir * PHYS.jetPush * STEP);
 
       const wantX = p.vx * STEP;
       const dX = this.moveX(p, wantX);
@@ -893,7 +894,7 @@ export class World {
       }
     }
     for (const w of this.waters) {
-      const target = w.on === undefined || this.switchOn(w.on) ? w.high : w.low;
+      const target = w.on === undefined || this.switchOn(w.on) !== !!w.inv ? w.high : w.low;
       if (Math.abs(target - w.level) > 0.5) w.level += Math.sign(target - w.level) * Math.min(70 * STEP, Math.abs(target - w.level));
     }
   }
@@ -908,13 +909,14 @@ export class World {
     for (const s of this.bubblers) {
       s.t += STEP;
       if (s.t < s.every) continue;
-      const b: Bubble = { kind: 'bubble', idx: 0, x: s.x - 8, y: s.y, w: 56, h: 16, life: 0 };
-      if (![...this.players, ...this.crates, ...this.robots, ...this.bubbles].some(o => overlap(b, o))) { this.bubbles.push(b); s.t = 0; }
+      // rises out of the drain in the floor, lifting whoever is standing on it
+      const b: Bubble = { kind: 'bubble', idx: 0, x: s.x - 8, y: s.y + T, w: 56, h: 16, life: 0 };
+      if (!this.bubbles.some(o => overlap(b, o))) { this.bubbles.push(b); s.t = 0; }
     }
     for (const b of this.bubbles) {
       b.life += STEP;
       const dy = -PHYS.bubbleSpeed * STEP;
-      const pop = b.life > PHYS.bubbleLife || this.tileHits({ x: b.x, y: b.y + dy, w: b.w, h: b.h }, null).length > 0 || b.y < 0;
+      const pop = b.life > PHYS.bubbleLife || (b.life > 0.4 && this.tileHits({ x: b.x, y: b.y + dy, w: b.w, h: b.h }, null).length > 0) || b.y < 0;
       if (pop) { b.life = -1; this.events.push({ type: 'pop' }); continue; }
       this.moveKinematic(b, 0, dy);
     }

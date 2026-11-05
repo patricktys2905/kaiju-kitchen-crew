@@ -39,7 +39,8 @@ export const PHYS = {
   meltTime: 1.6, // chocolate holds you this long, then drips away...
   regrow: 4, // ...and sets again after this long
   ventAcc: 3300, ventMax: 520, // steam vents lift you
-  jetAcc: 1700, jetMax: 380, // tap jets push you sideways
+  jetAcc: 1700, jetMax: 380, // tap jets push ingredients sideways
+  jetPush: 210, // ...and kaiju (px/s, on top of their own movement)
   swimV: 400, // a swim stroke
   bubbleSpeed: 75, bubbleLife: 7,
   hand: { warn: 1.4, slam: 0.5, lift: 0.6, w: 120 }, // the Chef's Hand

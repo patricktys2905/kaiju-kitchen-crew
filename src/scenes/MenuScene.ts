@@ -6,6 +6,7 @@ import { SPECIES, VIEW } from '../sim/constants';
 import { fitCamera, hasArt } from '../render/art';
 import { isFullscreen, isInstalledApp, setTouchMode, toggleFullscreen } from '../touch';
 import { mountPanel } from '../ui';
+import { musicOn, playMusic, toggleMusic } from '../music';
 
 /** Draws a little kitchen with kaiju bouncing along the counter (behind the menus). */
 export function drawMenuBackdrop(scene: Phaser.Scene): void {
@@ -45,6 +46,7 @@ export class MenuScene extends Phaser.Scene {
     clearTaps();
     setTouchMode('off');
     drawMenuBackdrop(this);
+    playMusic('menu');
     const root = mountPanel('menu');
     this.events.once('shutdown', () => root.remove());
     const notice = data?.notice ? `<p class="status bad">${data.notice}</p>` : '';
@@ -55,6 +57,7 @@ export class MenuScene extends Phaser.Scene {
       <div class="row">
         <button class="go" data-act="online">🌐 Play online</button>
         <button data-act="local">🎮 Same screen</button>
+        <button data-act="music">♪ Music: ${musicOn ? 'on' : 'off'}</button>
         ${isInstalledApp() && !isFullscreen() ? '' : `<button data-act="fs">⛶ ${isFullscreen() ? 'Exit full screen' : 'Full screen'}</button>`}
       </div>
       <h2>Controls</h2>
@@ -65,6 +68,7 @@ export class MenuScene extends Phaser.Scene {
         <b>Swap kaiju</b><span>Q · Right-Shift · pad Y · SWAP (same screen only)</span>
         <b>Retry / menu</b><span>R · Esc</span>
         <b>Full screen</b><span>F · ⛶ button (any time, also mid-level)</span>
+        <b>Music</b><span>M · ♪ button</span>
       </div>
       <div class="ver">v${__APP_VERSION__}</div>
     </div>`;
@@ -75,6 +79,7 @@ export class MenuScene extends Phaser.Scene {
     sfx.ui();
     if (a === 'online') this.scene.start('lobby');
     if (a === 'local') this.scene.start('local');
+    if (a === 'music') { toggleMusic(); this.scene.restart(); }
     if (a === 'fs') { toggleFullscreen(); setTimeout(() => this.scene.restart(), 400); }
   }
 
@@ -82,6 +87,7 @@ export class MenuScene extends Phaser.Scene {
     applyPendingUpdate();
     if (consumeTap('KeyO')) this.act('online');
     else if (consumeTap('KeyL')) this.act('local');
+    else if (consumeTap('KeyM')) this.act('music');
     clearTaps();
   }
 }

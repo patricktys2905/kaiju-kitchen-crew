@@ -3,6 +3,11 @@ let ac: AudioContext | null = null;
 let master: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
 
+/** The shared audio output (null until the first tap/keypress unlocks audio). */
+export function audioOut(): { ac: AudioContext; master: GainNode } | null {
+  return ac && master ? { ac, master } : null;
+}
+
 export function unlockAudio(): void {
   if (ac) {
     if (ac.state === 'suspended') void ac.resume();

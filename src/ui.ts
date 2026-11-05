@@ -30,6 +30,16 @@ const CSS = `
 .panel .world { font-family: 'Luckiest Guy', 'Arial Black', sans-serif; letter-spacing: 0.04em; color: #ffcf8a; font-size: 16px; margin-top: 10px; }
 .panel .levels button small { display: block; font-family: Nunito, Arial, sans-serif; font-weight: 800; font-size: 12px; opacity: 0.8; letter-spacing: 0; }
 .panel .status { margin-top: 12px; font-size: 16px; }
+.panel .seat.sel { box-shadow: 0 0 0 3px #fff inset; }
+.panel .seat.clickable { cursor: pointer; }
+.panel .picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: 8px; }
+.panel .picker button { position: relative; padding: 4px 2px 2px; border-radius: 12px; background: #0005; border: 3px solid #ffcf8a55; font-size: 11px; line-height: 1.1;
+  font-family: Nunito, Arial, sans-serif; font-weight: 900; letter-spacing: 0; color: #ffe9c7; }
+.panel .picker button img { width: 100%; height: 48px; object-fit: contain; display: block; }
+.panel .picker button.mine { border-color: #fff; background: #ffcf8a44; }
+.panel .picker button.taken { opacity: 0.45; }
+.panel .picker button .who { position: absolute; top: 2px; right: 4px; font-size: 10px; }
+@media (max-width: 700px) { .panel .picker { grid-template-columns: repeat(4, 1fr); } }
 .panel .status.bad { color: #ff8a7a; }
 .panel .title { font-size: 54px; line-height: 1; margin-bottom: 4px; }
 .panel .keys { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: 15px; color: #e8d6c0; }
@@ -88,6 +98,17 @@ export function seatRow(species: number, name: string, mine: boolean, extra = ''
     <div class="k" style="color:${sp.css}">${sp.full}<div class="who">${esc(name)}${extra}</div></div>
     ${mine ? `<button data-pick="-1">◀</button><button data-pick="1">▶</button>` : ''}
   </div>`;
+}
+
+/** All 16 kaiju: tap one to pick it. `taken` maps species -> label of whoever has it. */
+export function kaijuGrid(mine: number, taken: Map<number, string>): string {
+  return `<div class="picker">${SPECIES.map((sp, k) => {
+    const who = taken.get(k);
+    const border = k === mine ? `border-color:${sp.css}` : '';
+    const tag = who ? `<span class="who">${esc(who)}</span>` : '';
+    return `<button data-kaiju="${k}" class="${k === mine ? 'mine' : who ? 'taken' : ''}" style="${border}" title="${esc(sp.full)}">
+      <img src="art/kaiju-${k}.webp" alt="">${esc(sp.full)}${tag}</button>`;
+  }).join('')}</div>`;
 }
 
 /** Next kaiju index after `from` (by dir) that isn't taken. */

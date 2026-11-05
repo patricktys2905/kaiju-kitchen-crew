@@ -7,8 +7,9 @@ import { MAX_GUESTS, NetGuest, NetHost, type LobbySeat, type NetMsg } from '../n
 import { SPECIES } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { setTouchMode } from '../touch';
-import { cycleSpecies, esc, levelGrid, mountPanel, seatRow } from '../ui';
+import { cycleSpecies, esc, kaijuGrid, levelGrid, mountPanel, seatRow } from '../ui';
 import { drawMenuBackdrop } from './MenuScene';
+import { playMusic } from '../music';
 
 export class LobbyScene extends Phaser.Scene {
   private root: HTMLElement | null = null;
@@ -47,6 +48,7 @@ export class LobbyScene extends Phaser.Scene {
     clearTaps();
     setTouchMode('off');
     drawMenuBackdrop(this);
+    playMusic('menu');
     this.root = mountPanel('lobby');
     const root = this.root;
     this.events.once('shutdown', () => { root.remove(); this.root = null; });
@@ -78,6 +80,7 @@ export class LobbyScene extends Phaser.Scene {
     };
     host.onGuestLeave = g => { this.seats = this.seats.filter(s => s.guest !== g); sfx.leave(); this.syncLobby(); };
     host.onPick = (g, dir) => { const i = this.seats.findIndex(s => s.guest === g); if (i >= 0) this.cycle(i, dir); };
+    host.onChoose = (g, sp) => { const i = this.seats.findIndex(s => s.guest === g); if (i >= 0) this.choose(i, sp); };
   }
 
   private startHosting(): void {
@@ -107,6 +110,13 @@ export class LobbyScene extends Phaser.Scene {
       if (m.t === 'start') this.launchGuest(m);
     };
     guest.join(code, name || 'Friend');
+  }
+
+  private choose(i: number, sp: number): void {
+    if (sp < 0 || sp >= SPECIES.length || this.seats.some((s, k) => k !== i && s.species === sp)) return;
+    this.seats[i].species = sp;
+    sfx.pickup();
+    this.syncLobby();
   }
 
   private cycle(i: number, dir: number): void {
@@ -149,6 +159,9 @@ export class LobbyScene extends Phaser.Scene {
       const route = s.route === 'backup' ? ' · backup route (slower)' : s.route === 'direct' ? ' · direct link' : '';
       return seatRow(s.species, s.name, mine, `${mine ? ' (you)' : ''}${s.who === 'host' ? ' · host' : ''}${route}`);
     }).join('');
+    const meIdx = this.host ? 0 : this.mySeat;
+    const takenBy = new Map(this.seats.filter((_, k) => k !== meIdx).map(s => [s.species, s.name.slice(0, 6)] as [number, string]));
+    const grid = this.seats[meIdx] ? kaijuGrid(this.seats[meIdx].species, takenBy) : '';
     let html = '';
     if (this.view === 'choose') {
       html = `<h1>Play online</h1>
@@ -162,6 +175,7 @@ export class LobbyScene extends Phaser.Scene {
         <div class="code">${this.host?.code || '····'}</div>
         <p class="muted">Friends tap PLAY ONLINE → Join a game and type this code. Up to ${MAX_GUESTS} friends.</p>
         ${seatsHtml}
+        ${grid}
         <h2>Level</h2>
         ${levelGrid(this.level)}
         <div class="row"><button class="go" data-act="start" ${guests ? '' : 'disabled'}>Start cooking ▶</button><button data-act="back">Close room</button></div>
@@ -170,7 +184,7 @@ export class LobbyScene extends Phaser.Scene {
     } else {
       const saved = localStorage.getItem('kkc-name') ?? '';
       html = this.seats.length
-        ? `<h1>You're in!</h1>${seatsHtml}
+        ? `<h1>You're in!</h1>${seatsHtml}${grid}
            <p class="muted">Pick your kaiju with ◀ ▶. Level: <b>${esc(LEVELS[this.level]?.name ?? '')}</b>. The host starts the game.</p>${statusHtml}
            <div class="row"><button data-act="back">Leave</button></div>`
         : `<h1>Join a game</h1>
@@ -185,6 +199,11 @@ export class LobbyScene extends Phaser.Scene {
       const dir = Number(b.dataset.pick);
       if (this.host) this.cycle(0, dir);
       else this.guest?.send({ t: 'pick', dir });
+    }));
+    root.querySelectorAll<HTMLButtonElement>('button[data-kaiju]').forEach(b => b.addEventListener('click', () => {
+      const sp = Number(b.dataset.kaiju);
+      if (this.host) this.choose(0, sp);
+      else this.guest?.send({ t: 'choose', species: sp });
     }));
     root.querySelectorAll<HTMLButtonElement>('button[data-level]').forEach(b => b.addEventListener('click', () => { this.level = Number(b.dataset.level); sfx.ui(); this.syncLobby(); }));
     root.querySelector<HTMLInputElement>('#lb-code')?.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') this.act('join'); });

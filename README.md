@@ -37,6 +37,20 @@ head and is the only thing that can carry a watermelon. **Order tickets** change
 past them (moon gravity, backwards controls, lights out, rush order, noodle snapped). Mousetraps splat.
 13. **Noodle Buddies** 14. **Swing Shift** 15. **Pot Mech** 16. **Mech Arm** 17. **Order Chaos** 18. **Pantry Panic**
 
+## World 4: Stove & Oven
+Chocolate platforms melt after ~1.6 s of standing and set again; steam vents puff you up; the Pot Mech's metal
+feet can walk on hot hobs. 19. **Melting Point** 20. **Steam Room** 21. **Grill Marks** 22. **Oven Mitts** 23. **Flambé** 24. **Sunday Roast**
+
+## World 5: The Sink
+Plug levers fill/drain sinks (kaiju and ingredients float, JUMP underwater swims), soap bubbles rise from
+drains and carry you up, tap jets push you sideways. 25. **Bath Time** 26. **Bubble Bath** 27. **Tap Dance** 28. **Drain Plan** 29. **Suds Express** 30. **Washing Up**
+
+## World 6: Dinner Service
+The Chef's Hand slams down where the team is (hide under a shelf when its shadow appears), balance pans,
+conveyor belts, and everything mixed together. 31. **Watch the Hand** 32. **Balancing Act** 33. **Conveyor Chaos** 34. **Rush Hour** 35. **Head Chef** 36. **Grand Banquet**
+
+Extras: kaiju picker grid, background music per world (M / ♪ to mute), full screen any time (F / ⛶).
+
 ## Develop
 ```
 npm install

@@ -11,6 +11,7 @@ import { body, display, popIn, withShadow } from '../render/fonts';
 import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { nudgeSleepers } from '../sim/solo';
+import { playMusic, toggleMusic } from '../music';
 import { NO_INPUT, robotRole, World, type GameEvent, type PlayerInput } from '../sim/world';
 import type { TicketRule } from '../sim/level';
 import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
@@ -162,10 +163,11 @@ export class GameScene extends Phaser.Scene {
     this.recipeLabel = H(this.add.text(VIEW.w / 2, 8, 'ORDER', display(14, '#7a4a22', { strokeThickness: 0 })).setOrigin(0.5, 0).setDepth(102));
     this.banner = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setDepth(110), 6));
     this.sub = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setDepth(110), 3));
-    const hint = d.mode === 'guest' ? 'F full screen · Esc leave' : d.mode === 'host' ? 'R retry · F full screen · Esc menu' : 'R retry · F full screen · Esc menu · Q / R-Shift swap kaiju';
+    const hint = d.mode === 'guest' ? 'F full screen · M music · Esc leave' : d.mode === 'host' ? 'R retry · F full screen · M music · Esc menu' : 'R retry · F full screen · M music · Esc menu · Q / R-Shift swap kaiju';
     this.ticketText = H(withShadow(this.add.text(VIEW.w - 20, (isTouchDevice ? 56 : 14) + 34, '', body(17, '#ffe27a', 900, { align: 'right' })).setOrigin(1, 0).setDepth(101), 2));
     this.hint = H(withShadow(this.add.text(20, VIEW.h - 30, isTouchDevice ? '' : hint, body(15, '#fff6e6', 800)).setDepth(101), 2));
 
+    playMusic(level.world);
     this.wireNet();
     this.events.once('shutdown', () => setTouchMode('off'));
     this.showIntro();
@@ -259,6 +261,7 @@ export class GameScene extends Phaser.Scene {
     // menu keys
     if (consumeTap('Escape')) { this.toMenu(); return; }
     if (consumeTap('KeyF')) toggleFullscreen();
+    if (consumeTap('KeyM')) this.popup(toggleMusic() ? '♪ Music on' : '♪ Music off', w.camX + 480, this.cameras.main.scrollY + 120, '#ffe9c7');
     if (d.mode !== 'guest') {
       if (consumeTap('KeyR')) { this.restart(d.level); return; }
       if (w.phase === 'clear' && w.phaseT > 0.8 && (consumeTap('KeyN') || consumeTap('Enter') || startEdge)) {
@@ -567,9 +570,12 @@ export class GameScene extends Phaser.Scene {
       } else if (w.phase === 'clear') {
         this.bestNow = saveClear(d.level, w.levelT);
         const best = loadProgress()[d.level];
-        this.banner.setText('ORDER UP!');
+        const last = d.level === LEVELS.length - 1, worldEnd = (d.level + 1) % 6 === 0;
+        this.banner.setText(last ? 'ALL ORDERS SERVED!' : worldEnd ? 'WORLD COMPLETE!' : 'ORDER UP!');
+        if (last || worldEnd) sfx.recipeDone();
         const nextTxt = d.mode === 'guest' ? 'Waiting for the host…' : isTouchDevice ? '' : 'N / Enter: next level · R: replay · Esc: menu';
-        this.sub.setText(`${fmtTime(w.levelT)} · ${w.splats} splat${w.splats === 1 ? '' : 's'}${this.bestNow ? ' · NEW BEST!' : best !== undefined ? ` · best ${fmtTime(best)}` : ''}\n\n${nextTxt}`);
+        const extra = last ? 'You beat Kaiju Kitchen Crew! The chef is very impressed.\n' : worldEnd ? `${lvl.world} done! Next up: ${LEVELS[d.level + 1].world}.\n` : '';
+        this.sub.setText(`${extra}${fmtTime(w.levelT)} · ${w.splats} splat${w.splats === 1 ? '' : 's'}${this.bestNow ? ' · NEW BEST!' : best !== undefined ? ` · best ${fmtTime(best)}` : ''}\n\n${nextTxt}`);
         popIn(this, this.banner);
         this.introT = 0;
       } else if (this.introT <= 0) {

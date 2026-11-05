@@ -82,6 +82,7 @@ export function initTouch(injectFn: (code: string) => void): void {
       <div class="small" id="t-retry" style="left: calc(1.5vmin + env(safe-area-inset-left))">⟲ RETRY</div>
       <div class="small" id="t-menu" style="right: calc(1.5vmin + env(safe-area-inset-right))">✕ MENU</div>
       <div class="small" id="t-fs" style="right: calc(17vmin + env(safe-area-inset-right))">⛶ FULL</div>
+      <div class="small" id="t-music" style="right: calc(39vmin + env(safe-area-inset-right))">♪</div>
     </div>
     <div class="layer" id="tl-end">
       <div class="row"><div class="pill go" id="t-next">NEXT LEVEL ▶</div><div class="pill" id="t-replay">⟲ REPLAY</div><div class="pill" id="t-emenu">MENU</div></div>
@@ -115,6 +116,7 @@ export function initTouch(injectFn: (code: string) => void): void {
   for (const b of ['jump', 'grab', 'swap'] as const) hold($('t-' + b), () => { held[b] = true; latched[b] = true; }, () => { held[b] = false; });
   tapBtn($('t-retry'), 'KeyR');
   tapBtn($('t-menu'), 'Escape');
+  tapBtn($('t-music'), 'KeyM');
   // full screen must be requested inside the tap itself
   const fs = $('t-fs');
   fs.addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); toggleFullscreen(); });

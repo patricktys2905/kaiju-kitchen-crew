@@ -25,6 +25,7 @@ export interface LobbySeat {
 export type NetMsg =
   | { t: 'hello'; name: string }
   | { t: 'pick'; dir: number }
+  | { t: 'choose'; species: number }
   | { t: 'lobby'; seats: LobbySeat[]; you: number; level: number }
   | { t: 'start'; species: number[]; names: string[]; seat: number; level: number }
   | { t: 'in'; i: PlayerInput }
@@ -66,6 +67,7 @@ export class NetHost {
   onGuestJoin: (guest: number, name: string, route: 'direct' | 'backup') => void = () => {};
   onGuestLeave: (guest: number) => void = () => {};
   onPick: (guest: number, dir: number) => void = () => {};
+  onChoose: (guest: number, species: number) => void = () => {};
   onStatus: (text: string, ok: boolean) => void = () => {};
 
   open(): void {
@@ -136,6 +138,7 @@ export class NetHost {
   private handle(g: number, m: NetMsg): void {
     if (m.t === 'in') this.inputs.set(g, m.i);
     else if (m.t === 'pick') this.onPick(g, m.dir);
+    else if (m.t === 'choose') this.onChoose(g, m.species);
     else if (m.t === 'bye') this.drop(g);
   }
 

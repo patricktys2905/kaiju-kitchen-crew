@@ -36,6 +36,8 @@ export interface Player extends BodyBase {
   spicyT: number; // ate a chili: melts ice
   fizz: boolean; // drank soda: next jump is a big one
   inRobot: number; // index of the Pot Mech this kaiju is crewing, or -1
+  idleT: number; // seconds without any input (napping crew get no job in the Mech)
+  grabHeldT: number; // how long GRAB has been held (hold to hop out of the Mech)
 }
 export interface Crate extends BodyBase { kind: 'crate'; vx: number; vy: number; need: number; weight: number; homeX: number; homeY: number; pushers: number }
 export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number; bal?: { other: number; base: number; travel: number; left: boolean } }
@@ -47,7 +49,7 @@ export interface Burner extends BodyBase { kind: 'burner'; cold: number; hot: nu
 export interface Jelly extends BodyBase { kind: 'jelly'; on?: string; frozen: boolean; wobble: number }
 export interface Block extends BodyBase { kind: 'block'; mat: 'ice' | 'cracker'; broken: boolean; breakT: number }
 /** The Pot Mech: kaiju climb in (GRAB) and each crew seat works one part: legs, jump, arm. */
-export interface Robot extends BodyBase { kind: 'robot'; vx: number; vy: number; facing: 1 | -1; grounded: boolean; crew: number[]; carry: number; homeX: number; homeY: number; ckX: number; ckY: number; landT: number; armT: number }
+export interface Robot extends BodyBase { kind: 'robot'; vx: number; vy: number; facing: 1 | -1; grounded: boolean; crew: number[]; roles: RobotRole[]; carry: number; homeX: number; homeY: number; ckX: number; ckY: number; landT: number; armT: number }
 export interface Melty extends BodyBase { kind: 'melty'; melt: number; gone: boolean; regrow: number }
 export interface Bubble extends BodyBase { kind: 'bubble'; life: number }
 export interface Belt extends BodyBase { kind: 'belt'; dir: number; speed: number }
@@ -169,7 +171,7 @@ export class World {
         case 'sign': this.signs.push({ x: e.x * T, y: e.y * T, text: e.text }); break;
         case 'robot': {
           const x = e.x * T + (3 * T - PHYS.robot.w) / 2, y = (e.y + 3) * T - PHYS.robot.h;
-          this.robots.push({ kind: 'robot', idx: this.robots.length, x, y, w: PHYS.robot.w, h: PHYS.robot.h, vx: 0, vy: 0, facing: 1, grounded: false, crew: [], carry: -1, homeX: x, homeY: y, ckX: x, ckY: y, landT: 0, armT: 0 });
+          this.robots.push({ kind: 'robot', idx: this.robots.length, x, y, w: PHYS.robot.w, h: PHYS.robot.h, vx: 0, vy: 0, facing: 1, grounded: false, crew: [], roles: [], carry: -1, homeX: x, homeY: y, ckX: x, ckY: y, landT: 0, armT: 0 });
           break;
         }
         case 'ticket': this.tickets.push({ x: e.x * T, rule: e.rule, dur: e.dur ?? 0, fired: false }); break;
@@ -199,7 +201,7 @@ export class World {
   private makePlayer(idx: number, species: number, name: string): Player {
     return {
       kind: 'player', idx, species, name, x: 0, y: 0, w: PHYS.pw, h: PHYS.ph, vx: 0, vy: 0, facing: 1, grounded: false,
-      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false, inRobot: -1,
+      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false, inRobot: -1, idleT: 0, grabHeldT: 0,
     };
   }
 
@@ -697,7 +699,7 @@ export class World {
       return;
     }
     for (const r of this.robots) {
-      if (overlap(reach, r)) { this.board(p, r); return; }
+      if (overlap({ x: reach.x - 16, y: reach.y - 16, w: reach.w + 32, h: reach.h + 32 }, r)) { this.board(p, r); return; }
     }
     for (const l of this.levers) {
       if (overlap(reach, { x: l.x + 4, y: l.y, w: T - 8, h: T })) {
@@ -838,7 +840,7 @@ export class World {
       it.vx = it.vy = 0;
       pl.carry = -1;
     }
-    for (const r of this.robots) { r.crew = []; r.x = r.ckX; r.y = r.ckY; r.vx = r.vy = 0; }
+    for (const r of this.robots) { r.crew = []; r.roles = []; r.x = r.ckX; r.y = r.ckY; r.vx = r.vy = 0; }
     for (const h of this.hands) { h.state = 'idle'; h.t = -1.5; }
     this.bubbles = [];
     const cp = this.checkpoint >= 0 ? this.checks[this.checkpoint] : null;
@@ -1029,6 +1031,8 @@ export class World {
   private board(p: Player, r: Robot): void {
     if (p.carry >= 0) { const it = this.items[p.carry]; it.carrier = -1; p.carry = -1; }
     p.inRobot = r.idx;
+    p.idleT = 0;
+    p.grabHeldT = 0;
     r.crew.push(p.idx);
     this.events.push({ type: 'board', p: p.idx });
   }
@@ -1036,6 +1040,8 @@ export class World {
   private leave(p: Player, r: Robot): void {
     r.crew = r.crew.filter(i => i !== p.idx);
     p.inRobot = -1;
+    p.grabHeldT = 0;
+    p.grabPrev = true; // the held GRAB doesn't also grab something outside
     p.x = r.x + r.w / 2 - p.w / 2;
     p.y = r.y - p.h - 1;
     if (this.tileHits(p, null).length) { p.x = r.facing > 0 ? r.x - p.w - 1 : r.x + r.w + 1; p.y = r.y + r.h - p.h; }
@@ -1071,19 +1077,27 @@ export class World {
       r.armT = Math.max(0, r.armT - STEP);
       let mx = 0, jumpEdge = false;
       const leaving: Player[] = [];
-      const n = r.crew.length;
-      r.crew.forEach((pi, seat) => {
+      // jobs go to the crew who are actually playing (in seat order); napping crew just ride along
+      for (const pi of r.crew) {
+        const p = this.players[pi];
+        const inp = inputs[pi] ?? NO_INPUT;
+        p.idleT = Math.abs(inp.mx) > 0.2 || inp.jump || inp.grab ? 0 : p.idleT + STEP;
+      }
+      const active = r.crew.filter(pi => this.players[pi].idleT < 2.5);
+      const staff = active.length ? active : r.crew;
+      r.roles = r.crew.map(pi => (staff.includes(pi) ? robotRole(staff.indexOf(pi), staff.length) : 'ride'));
+      r.crew.forEach((pi, k) => {
         const p = this.players[pi];
         const inp = inputs[pi] ?? NO_INPUT;
         const je = inp.jump && !p.jumpPrev, ge = inp.grab && !p.grabPrev;
         p.jumpPrev = inp.jump; p.grabPrev = inp.grab;
-        const role = robotRole(seat, n);
+        const role = r.roles[k];
         if (role === 'all' || role === 'legs') mx = Math.max(-1, Math.min(1, inp.mx)) * (this.rule === 'reverse' ? -1 : 1);
         if (role === 'all' || role === 'jump' || role === 'jump+arm') jumpEdge ||= je;
-        if (ge) {
-          const armRole = role === 'all' || role === 'arm' || role === 'jump+arm';
-          if (!(armRole && this.robotArm(r))) leaving.push(p);
-        }
+        if (ge && (role === 'all' || role === 'arm' || role === 'jump+arm')) this.robotArm(r);
+        // hold GRAB to hop out
+        p.grabHeldT = inp.grab ? p.grabHeldT + STEP : 0;
+        if (p.grabHeldT >= 0.45) leaving.push(p);
       });
       for (const p of leaving) this.leave(p, r);
 

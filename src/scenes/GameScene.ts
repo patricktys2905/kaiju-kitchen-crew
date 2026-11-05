@@ -479,12 +479,12 @@ export class GameScene extends Phaser.Scene {
     w.robots.forEach((r, ri) => {
       const t = this.robotTags[ri];
       const names = r.crew.map((pi, seat) => {
-        const role = robotRole(seat, r.crew.length);
-        const icon = role === 'all' ? 'ALL' : role === 'legs' ? 'LEGS' : role === 'jump' ? 'JUMP' : role === 'arm' ? 'ARM' : role === 'jump+arm' ? 'JUMP+ARM' : 'RIDE';
+        const role = r.roles[seat] ?? robotRole(seat, r.crew.length);
+        const icon = role === 'all' ? 'DRIVER' : role === 'legs' ? 'LEGS' : role === 'jump' ? 'JUMP' : role === 'arm' ? 'ARM' : role === 'jump+arm' ? 'JUMP+ARM' : 'zzz';
         const who = d.mode === 'local' ? controllers!.labelOf(pi) ?? w.players[pi].name : w.players[pi].name;
         return icon + ': ' + who;
       });
-      t.setText(names.length ? names.join('\n') : 'GRAB to climb in');
+      t.setText(names.length ? names.join('\n') + '\n(hold GRAB to hop out)' : 'GRAB to climb in');
       t.setPosition(r.x + r.w / 2, r.y - 12 - (w.players.some(p => p.inRobot < 0 && Math.abs(p.x + p.w / 2 - (r.x + r.w / 2)) < r.w / 2 && p.y < r.y) ? 40 : 0));
     });
     // carried ingredients go in front of the kaiju

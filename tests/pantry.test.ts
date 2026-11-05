@@ -38,7 +38,7 @@ describe('noodle tether', () => {
 
 describe('Pot Mech', () => {
   const mechRoom = (edit?: Parameters<typeof flatRoom>[1]) => flatRoom(50, b => { b.add({ t: 'robot', x: 10, y: 13 }); edit?.(b); });
-  it('GRAB to climb in; one crew does everything; GRAB again to hop out', () => {
+  it('GRAB to climb in; one crew does everything; HOLD GRAB to hop out', () => {
     const w = makeWorld(mechRoom(), 2);
     const [a] = w.players;
     const r = w.robots[0];
@@ -53,6 +53,8 @@ describe('Pot Mech', () => {
     frames(w, 60, (_, f) => { top = Math.min(top, r.y); return [{ jump: f < 3 }]; });
     expect(16 * T - PHYS.robot.h - top).toBeGreaterThan(4 * T);
     tap(w, 0);
+    expect(a.inRobot).toBe(0); // a tap doesn't throw you out any more
+    frames(w, 40, () => [{ grab: true }]); // hold GRAB to hop out
     expect(a.inRobot).toBe(-1);
     expect(r.crew).toEqual([]);
   });
@@ -263,4 +265,37 @@ describe('Order Chaos', () => {
       expect(w.rule).toBe('lowgrav');
     });
   }
+});
+
+describe('Pot Mech crew jobs', () => {
+  it('solo with SWAP: both kaiju aboard, the one actually playing drives and works the arm', () => {
+    const w = makeWorld(flatRoom(50, b => b.add({ t: 'robot', x: 10, y: 13 }, { t: 'item', kind: 'melon', x: 20, y: 15 })), 2);
+    const r = w.robots[0];
+    const [a, b] = w.players;
+    place(a, r.x - 10, 16 * T); place(b, r.x - 50, 16 * T);
+    frames(w, 10);
+    tap(w, 0); // A climbs in
+    until(w, () => [{}, { mx: 1 }], () => b.x + b.w > r.x - 4, 200, 'B walks up'); // the player swaps to B
+    tap(w, 1); // B climbs in (A is now asleep inside)
+    expect(r.crew).toEqual([0, 1]);
+    frames(w, 160, () => [{}, {}]);
+    frames(w, 10, () => [{}, { mx: 1 }]);
+    expect(r.roles).toEqual(['ride', 'all']);
+    const x0 = r.x;
+    until(w, () => [{}, { mx: 1 }], () => r.x + r.w > 20 * T - 20, 600, 'B drives');
+    expect(r.x).toBeGreaterThan(x0 + 100);
+    frames(w, 10);
+    tap(w, 1);
+    expect(w.items[r.carry]?.kind).toBe('melon');
+    expect(r.crew).toEqual([0, 1]); // grabbing never throws anyone out
+  });
+  it('a GRAB with nothing to grab keeps you in the Mech', () => {
+    const w = makeWorld(flatRoom(50, b => b.add({ t: 'robot', x: 10, y: 13 })), 2);
+    const r = w.robots[0];
+    place(w.players[0], r.x - 10, 16 * T);
+    frames(w, 5);
+    tap(w, 0);
+    tap(w, 0); tap(w, 0);
+    expect(r.crew).toEqual([0]);
+  });
 });

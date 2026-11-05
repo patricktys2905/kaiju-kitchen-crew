@@ -1,9 +1,10 @@
 // Compact snapshots for online play. The host's World is the only real simulation; guests build the
 // same level locally (so all the static parts already exist) and copy the moving parts in.
 import { PHYS } from '../sim/constants';
-import type { HandState, Phase, World } from '../sim/world';
+import type { HandState, Phase, RobotRole, World } from '../sim/world';
 
 const PHASES: Phase[] = ['play', 'splat', 'clear'];
+const ROLES: RobotRole[] = ['all', 'legs', 'jump', 'arm', 'jump+arm', 'ride'];
 const ST = ['cold', 'warn', 'hot'] as const;
 const HS: HandState[] = ['idle', 'warn', 'slam', 'lift'];
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -24,6 +25,7 @@ export interface Snapshot {
   j?: number[][]; // jelly frozen wobble
   bl?: number[][]; // blocks broken breakT
   r?: number[][]; // robots x y vx vy facing carry grounded landT armT ...crew
+  rr?: number[][]; // robot crew jobs
   tf?: number[]; // tickets fired
   ru?: [string | null, number]; // rule, time left
   tl?: number; // noodle length
@@ -43,6 +45,7 @@ export function makeSnapshot(w: World): Snapshot {
     j: w.jellies.map(j => [j.frozen ? 1 : 0, r2(j.wobble)]),
     bl: w.blocks.map(b => [b.broken ? 1 : 0, r2(b.breakT)]),
     r: w.robots.map(r => [r1(r.x), r1(r.y), r1(r.vx), r1(r.vy), r.facing, r.carry, r.grounded ? 1 : 0, r2(r.landT), r2(r.armT), ...r.crew]),
+    rr: w.robots.map(r => r.roles.map(x => ROLES.indexOf(x))),
     tf: w.tickets.map(t => (t.fired ? 1 : 0)),
     ru: [w.rule, r2(w.ruleT)],
     tl: w.tetherLen,
@@ -93,6 +96,7 @@ export function applySnapshot(w: World, s: Snapshot): void {
     [r.x, r.y, r.vx, r.vy] = a;
     r.facing = a[4] < 0 ? -1 : 1; r.carry = a[5]; r.grounded = a[6] === 1; r.landT = a[7]; r.armT = a[8];
     r.crew = a.slice(9);
+    r.roles = (s.rr?.[i] ?? []).map(k => ROLES[k] ?? 'ride');
     for (const pi of r.crew) if (w.players[pi]) w.players[pi].inRobot = i;
   });
   s.tf?.forEach((v, i) => { const t = w.tickets[i]; if (t) t.fired = v === 1; });

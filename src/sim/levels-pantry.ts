@@ -61,7 +61,7 @@ function potMech(): LevelDef {
       { t: 'item', kind: 'pasta', x: 38, y: 12 },
       { t: 'pot', x: 44, y: 12 },
       { t: 'plate', x: 52, y: 12, w: 10 },
-      { t: 'sign', x: 1, y: 8, text: 'GRAB next to the Pot Mech to climb in (GRAB again to hop out). 1st in = legs, 2nd = jump, 3rd = arm' },
+      { t: 'sign', x: 1, y: 8, text: 'GRAB next to the Pot Mech to climb in (HOLD GRAB to hop out). 1st in = legs, 2nd = jump, 3rd = arm' },
       { t: 'sign', x: 15, y: 9, text: 'Ride on its head when it jumps!' },
       { t: 'sign', x: 22, y: 7, text: 'This scale wants 6. The Mech weighs 6' },
     );
@@ -72,7 +72,7 @@ function mechArm(): LevelDef {
   const b = new LevelBuilder('Mech Arm', W3, 'A whole watermelon! Only the Pot Mech is strong enough to carry it.', 64, ['melon', 'honey']).room();
   b.shelf(16, 12, 3)
     .solid(21, 0, 1, 9)
-    .solid(26, 12, 10, 2) // a low shelf: kaiju fit under it, the Mech climbs over
+    .solid(26, 13, 10, 1) // a low shelf: kaiju fit under it, the Mech jumps over
     .add(
       { t: 'robot', x: 3, y: 13 },
       { t: 'item', kind: 'melon', x: 13, y: 15 },
@@ -85,7 +85,7 @@ function mechArm(): LevelDef {
       { t: 'sign', x: 14, y: 8, text: 'Ride the Mech up to the lever' },
       { t: 'sign', x: 26, y: 8, text: 'Kaiju fit under, the Mech jumps over' },
     );
-  return b.start(7).build();
+  return b.start(0).build();
 }
 
 function orderChaos(): LevelDef {

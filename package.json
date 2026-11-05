@@ -12,7 +12,9 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:online": "node scripts/smoke-online.mjs",
     "smoke:online-backup": "node scripts/smoke-online.mjs backup",
-    "phone": "vite --host"
+    "phone": "vite --host",
+    "art": "node scripts/process-art.mjs",
+    "art:gen": "node scripts/gem-gen.mjs"
   },
   "dependencies": {
     "mqtt": "^5.16.1",

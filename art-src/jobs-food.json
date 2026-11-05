@@ -1,0 +1,13 @@
+[
+  {
+    "name": "it-bread",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game set in a giant kitchen. I need small INGREDIENT icons in EXACTLY this art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights, very readable when tiny. One ingredient per image, centred, filling about 80% of the frame, solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1. First: one SLICE OF BREAD seen from the front (classic bread-slice shape, golden crust, soft white middle)."
+  },
+  { "name": "it-cheese", "prompt": "Next ingredient, exactly the same style and framing, solid flat magenta (#FF00FF) background, no face: a yellow WEDGE OF CHEESE with holes. Square 1:1." },
+  { "name": "it-tomato", "prompt": "Next ingredient, same style, solid flat magenta (#FF00FF) background, no face: one shiny red TOMATO with a green stalk. Square 1:1." },
+  { "name": "it-egg", "prompt": "Next ingredient, same style, solid flat magenta (#FF00FF) background, no face: one whole white EGG standing upright. Square 1:1." },
+  { "name": "it-ham", "prompt": "Next ingredient, same style, solid flat magenta (#FF00FF) background, no face: one round pink SLICE OF HAM seen from the front. Square 1:1." },
+  { "name": "it-lettuce", "prompt": "Next ingredient, same style, solid flat magenta (#FF00FF) background, no face: one crisp green LETTUCE leaf. Square 1:1." }
+]

@@ -4,7 +4,7 @@
 // Physics model: axis-aligned boxes. Kaiju and sugar cubes are solid to each other, so you can stand on
 // a friend's head (and get carried when they move or jump). Lifts/doors/scales/toasters/pots are solid
 // fixtures. Ingredients are not solid: they are carried above a kaiju's head, thrown, or lie around.
-import { ITEMS, PHYS, STEP, T, TIMING, VIEW, type ItemKind } from './constants';
+import { ITEMS, PHYS, STEP, T, TIMING, WORLD_VIEW as VIEW, type ItemKind } from './constants';
 import { resolveNeed, TILE_HOT, TILE_SHELF, TILE_SOLID, type LevelDef } from './level';
 
 export interface PlayerInput {

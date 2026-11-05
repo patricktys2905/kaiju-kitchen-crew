@@ -1,6 +1,9 @@
 // Tuning numbers for the platformer. Units: pixels and seconds. One tile = 40 px.
 export const T = 40;
-export const VIEW = { w: 1280, h: 720 };
+export const VIEW = { w: 1280, h: 720 }; // screen / HUD coordinates
+/** How much of the kitchen the shared camera shows (world px). Smaller = bigger kaiju on screen. */
+export const WORLD_VIEW = { w: 960, h: 540 };
+export const ZOOM = VIEW.w / WORLD_VIEW.w;
 export const STEP = 1 / 60; // fixed simulation step
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;

@@ -5,9 +5,10 @@ import { sfx } from '../audio';
 import { clearTaps, consumeTap, Controllers, mergedInput, readDevices } from '../input';
 import type { LobbySeat, NetGuest, NetHost, NetMsg } from '../net/net';
 import { applySnapshot, extrapolate, makeSnapshot } from '../net/snapshot';
-import { drawDynamic, drawItem, drawStatic } from '../render/draw';
+import { fitCamera, hasArt, RES, SpritePool } from '../render/art';
+import { buildStatic, drawDynamic, placeItem } from '../render/draw';
 import { body, display, popIn, withShadow } from '../render/fonts';
-import { ITEMS, PHYS, SPECIES, STEP, T, VIEW } from '../sim/constants';
+import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { NO_INPUT, World, type GameEvent, type PlayerInput } from '../sim/world';
 import { isTouchDevice, setTouchMode } from '../touch';
@@ -32,6 +33,12 @@ export class GameScene extends Phaser.Scene {
   private acc = 0;
   private time0 = 0;
   private dyn!: Phaser.GameObjects.Graphics;
+  private hudFront!: Phaser.GameObjects.Graphics;
+  private front!: Phaser.GameObjects.Graphics;
+  private worldLayer!: Phaser.GameObjects.Layer;
+  private hudLayer!: Phaser.GameObjects.Layer;
+  private pool!: SpritePool;
+  private hudPool!: SpritePool;
   private hud!: Phaser.GameObjects.Graphics;
   private kaiju: Phaser.GameObjects.Image[] = [];
   private tags: Phaser.GameObjects.Text[] = [];
@@ -80,38 +87,55 @@ export class GameScene extends Phaser.Scene {
     const level = LEVELS[d.level];
     this.world = new World(level, d.species, d.names ?? d.species.map((_, i) => `Kaiju ${i + 1}`));
     const w = this.world;
-    this.cameras.main.setBounds(0, 0, w.W, w.H);
-    this.cameras.main.scrollX = w.camX;
+    // Two cameras: the world camera is zoomed in (bigger kaiju) and follows the team; the HUD camera isn't.
+    const cam = fitCamera(this, ZOOM);
+    cam.scrollX = w.camX;
+    cam.scrollY = this.camTargetY();
+    this.worldLayer = this.add.layer();
+    this.hudLayer = this.add.layer().setDepth(100);
+    const ui = this.cameras.add(0, 0, VIEW.w * RES, VIEW.h * RES).setOrigin(0, 0).setZoom(RES);
+    cam.ignore(this.hudLayer);
+    ui.ignore(this.worldLayer);
+    const L = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.worldLayer.add(o); return o; };
+    const H = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.hudLayer.add(o); return o; };
+    this.pool = new SpritePool(this, this.worldLayer);
+    this.hudPool = new SpritePool(this, this.hudLayer);
     this.time0 = 0;
 
-    drawStatic(this.add.graphics().setDepth(0), w);
+    buildStatic(this, this.worldLayer, w);
     for (const s of w.signs) {
-      const t = this.add.text(s.x, s.y, s.text, body(15, '#fff6e6', 800, { wordWrap: { width: 230 }, align: 'center' })).setOrigin(0, 0).setDepth(1);
-      const bg = this.add.graphics().setDepth(0.5);
-      bg.fillStyle(0x2f3b2f, 0.92).fillRoundedRect(s.x - 10, s.y - 8, t.width + 20, t.height + 16, 8);
-      bg.lineStyle(4, 0x8a5a32, 1).strokeRoundedRect(s.x - 10, s.y - 8, t.width + 20, t.height + 16, 8);
+      const t = L(this.add.text(s.x, s.y, s.text, body(15, '#fff6e6', 800, { wordWrap: { width: 230 }, align: 'center' })).setOrigin(0, 0).setDepth(1));
+      if (hasArt('ob-sign')) {
+        L(this.add.image(s.x - 30, s.y - 24, 'ob-sign').setOrigin(0).setDisplaySize(t.width + 60, t.height + 48).setDepth(0.9));
+      } else {
+        const bg = L(this.add.graphics().setDepth(0.5));
+        bg.fillStyle(0x2f3b2f, 0.92).fillRoundedRect(s.x - 10, s.y - 8, t.width + 20, t.height + 16, 8);
+        bg.lineStyle(4, 0x8a5a32, 1).strokeRoundedRect(s.x - 10, s.y - 8, t.width + 20, t.height + 16, 8);
+      }
     }
-    this.dyn = this.add.graphics().setDepth(5);
-    for (const s of w.scales) this.scaleTexts.push(this.add.text(s.x + s.w / 2, s.y - 16, '', display(18, '#ffffff')).setOrigin(0.5).setDepth(7));
-    for (const c of w.crates) this.crateTexts.push(this.add.text(c.x + c.w / 2, c.y + c.h / 2, '', display(c.w > T ? 22 : 15, '#7a93b0', { strokeThickness: 0 })).setOrigin(0.5).setDepth(6));
+    this.dyn = L(this.add.graphics().setDepth(5));
+    this.front = L(this.add.graphics().setDepth(12));
+    for (const s of w.scales) this.scaleTexts.push(L(this.add.text(s.x + s.w / 2, s.y - 16, '', display(18, '#ffffff')).setOrigin(0.5).setDepth(7)));
+    for (const c of w.crates) this.crateTexts.push(L(this.add.text(c.x + c.w / 2, c.y + c.h / 2, '', display(c.w > T ? 22 : 15, '#7a93b0', { strokeThickness: 0 })).setOrigin(0.5).setDepth(8)));
     w.players.forEach(p => {
       const key = `kaiju-${p.species}`;
-      const img = this.textures.exists(key) ? this.add.image(0, 0, key) : this.add.image(0, 0, '__WHITE');
+      const img = L(this.textures.exists(key) ? this.add.image(0, 0, key) : this.add.image(0, 0, '__WHITE'));
       img.setOrigin(0.5, 1).setDepth(10);
       this.kaiju.push(img);
-      this.tags.push(this.add.text(0, 0, '', body(13, SPECIES[p.species].css, 900, { stroke: '#2a1408', strokeThickness: 4 })).setOrigin(0.5, 1).setDepth(11));
+      this.tags.push(L(this.add.text(0, 0, '', body(13, SPECIES[p.species].css, 900, { stroke: '#2a1408', strokeThickness: 4 })).setOrigin(0.5, 1).setDepth(11)));
     });
 
     // HUD (fixed to the screen)
-    this.hud = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.hud = H(this.add.graphics().setDepth(100));
+    this.hudFront = H(this.add.graphics().setDepth(104));
     const top = isTouchDevice ? 56 : 14;
-    this.infoL = withShadow(this.add.text(20, top, '', display(22)).setScrollFactor(0).setDepth(101), 3);
-    this.infoR = withShadow(this.add.text(VIEW.w - 20, top, '', display(22)).setOrigin(1, 0).setScrollFactor(0).setDepth(101), 3);
-    this.recipeLabel = this.add.text(VIEW.w / 2, 8, 'ORDER', display(14, '#7a4a22', { strokeThickness: 0 })).setOrigin(0.5, 0).setScrollFactor(0).setDepth(102);
-    this.banner = withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setScrollFactor(0).setDepth(110), 6);
-    this.sub = withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setScrollFactor(0).setDepth(110), 3);
+    this.infoL = H(withShadow(this.add.text(20, top, '', display(22)).setDepth(101), 3));
+    this.infoR = H(withShadow(this.add.text(VIEW.w - 20, top, '', display(22)).setOrigin(1, 0).setDepth(101), 3));
+    this.recipeLabel = H(this.add.text(VIEW.w / 2, 8, 'ORDER', display(14, '#7a4a22', { strokeThickness: 0 })).setOrigin(0.5, 0).setDepth(102));
+    this.banner = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setDepth(110), 6));
+    this.sub = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setDepth(110), 3));
     const hint = d.mode === 'guest' ? 'Esc leave' : d.mode === 'host' ? 'R retry · Esc menu' : 'R retry · Esc menu · Q / R-Shift swap kaiju';
-    this.hint = this.add.text(20, VIEW.h - 30, isTouchDevice ? '' : hint, body(15, '#5a4030', 800)).setScrollFactor(0).setDepth(101);
+    this.hint = H(withShadow(this.add.text(20, VIEW.h - 30, isTouchDevice ? '' : hint, body(15, '#fff6e6', 800)).setDepth(101), 2));
 
     this.wireNet();
     this.events.once('shutdown', () => setTouchMode('off'));
@@ -297,20 +321,35 @@ export class GameScene extends Phaser.Scene {
 
   private popup(text: string, x: number, y: number, color: string, size = 22): void {
     const t = withShadow(this.add.text(x, y, text, display(size, color)).setOrigin(0.5).setDepth(60), 3);
+    this.worldLayer.add(t);
     popIn(this, t, 1.5, 260);
     this.popups.push({ t, life: 1.6 });
   }
 
   // ------------------------------------------------------------------ drawing
+  /** Vertical camera: follows the middle of the team (the level is taller than the view). */
+  private camTargetY(): number {
+    const w = this.world;
+    let lo = Infinity, hi = -Infinity;
+    for (const p of w.players) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y + p.h); }
+    const mid = (lo + hi) / 2;
+    // on touch screens show a strip below the floor so the kaiju sit above the thumb buttons
+    const extra = isTouchDevice ? 80 : 0;
+    return Math.max(0, Math.min(w.H - WORLD_VIEW.h + extra, mid - WORLD_VIEW.h * 0.58 + extra));
+  }
+
   private render(dt: number): void {
     const w = this.world;
     const d = this.d;
     const cam = this.cameras.main;
     cam.scrollX += (w.camX - cam.scrollX) * Math.min(1, dt * 10);
+    cam.scrollY += (this.camTargetY() - cam.scrollY) * Math.min(1, dt * 5);
     const time = this.time0;
 
     this.dyn.clear();
-    drawDynamic(this.dyn, w, time);
+    this.front.clear();
+    this.pool.begin();
+    drawDynamic(this.dyn, w, time, this.pool);
 
     w.scales.forEach((s, i) => {
       const t = this.scaleTexts[i];
@@ -326,7 +365,7 @@ export class GameScene extends Phaser.Scene {
     // kaiju
     w.players.forEach((p, i) => {
       const img = this.kaiju[i];
-      const hgt = 56;
+      const hgt = 64;
       const base = img.texture.key === '__WHITE' ? 1 : hgt / img.height;
       const walking = p.grounded && Math.abs(p.vx) > 30;
       const bob = walking ? Math.abs(Math.sin(time * 16 + i)) * 3 : 0;
@@ -355,15 +394,15 @@ export class GameScene extends Phaser.Scene {
       const carryLift = p.carry >= 0 ? PHYS.item : 0;
       // neighbours' tags sit at different heights so they don't overlap
       const near = w.players.some(o => o !== p && o.idx < p.idx && Math.abs(o.x - p.x) < 60 && Math.abs(o.y - p.y) < 20);
-      tag.setPosition(p.x + p.w / 2, p.y - 22 - carryLift - (near ? 15 : 0) + (asleep ? Math.sin(time * 2 + i) * 3 : 0));
+      tag.setPosition(p.x + p.w / 2, p.y - 30 - carryLift - (near ? 15 : 0) + (asleep ? Math.sin(time * 2 + i) * 3 : 0));
       tag.setAlpha(asleep ? 0.7 : 1);
     });
     // carried ingredients go in front of the kaiju
     for (const it of w.items) {
       if (it.carrier < 0 || it.delivered) continue;
-      drawItem(this.dyn, it.kind, it.x + PHYS.item / 2, it.y + PHYS.item / 2 - 4);
+      placeItem(this.pool, this.front, it.kind, it.x + PHYS.item / 2, it.y + PHYS.item / 2 - 10, PHYS.item, 12);
     }
-    this.dyn.setDepth(5);
+    this.pool.end();
 
     // popups
     for (const p of this.popups) {
@@ -382,6 +421,8 @@ export class GameScene extends Phaser.Scene {
     const d = this.d;
     const g = this.hud;
     g.clear();
+    this.hudFront.clear();
+    this.hudPool.begin();
     // recipe card
     const r = w.level.recipe;
     const cw = Math.max(160, r.length * 52 + 30), cx = VIEW.w / 2 - cw / 2, cy = 6;
@@ -393,13 +434,14 @@ export class GameScene extends Phaser.Scene {
       const x = cx + 15 + 26 + i * 52, y = cy + 48;
       const done = i < w.delivered, next = i === w.delivered;
       if (next) g.fillStyle(0xffc04a, 0.35 + 0.25 * Math.sin(time * 6)).fillCircle(x, y, 22);
-      drawItem(g, k, x, y, 30);
+      placeItem(this.hudPool, g, k, x, y, 30, 103);
       if (done) {
-        g.fillStyle(0x2a9a3a, 0.85).fillCircle(x + 14, y - 12, 9);
-        g.lineStyle(3, 0xffffff, 1).beginPath().moveTo(x + 9, y - 12).lineTo(x + 13, y - 8).lineTo(x + 19, y - 16).strokePath();
+        this.hudFront.fillStyle(0x2a9a3a, 0.9).fillCircle(x + 14, y - 12, 9);
+        this.hudFront.lineStyle(3, 0xffffff, 1).beginPath().moveTo(x + 9, y - 12).lineTo(x + 13, y - 8).lineTo(x + 19, y - 16).strokePath();
       }
       if (i < r.length - 1) g.fillStyle(0xb08a5a, 1).fillTriangle(x + 22, y - 4, x + 22, y + 4, x + 28, y);
     });
+    this.hudPool.end();
     this.recipeLabel.setText(w.recipeDone ? 'COOKED! → PLATE' : 'ORDER');
     this.recipeLabel.setColor(w.recipeDone ? '#2a9a3a' : '#7a4a22');
 

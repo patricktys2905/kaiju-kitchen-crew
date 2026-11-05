@@ -1,0 +1,19 @@
+[
+  {
+    "name": "ob-pot",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need PROP sprites in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Every prop is seen from the SIDE (straight-on side view, like a 2D platformer, no top-down). One object per image, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no shadow on the ground, no text, no border, nothing else. Square 1:1 image. First prop: a big dark steel COOKING POT with two side handles, bubbling orange soup visible at the top rim with a little steam."
+  },
+  { "name": "ob-plate", "prompt": "Next prop, exactly the same style, side view, framing and solid flat magenta (#FF00FF) background: a big white ceramic SERVING PLATE seen from the side and slightly above, wide and flat (much wider than tall), with a pale blue rim stripe. Nothing on it. Square 1:1 image, plate centred." },
+  { "name": "ob-cloche", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a shiny silver restaurant CLOCHE (dome food cover) with a round knob handle on top, seen from the side. Square 1:1." },
+  { "name": "ob-toaster", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a retro chrome pop-up TOASTER seen from the side, wider than tall, two bread slots on top, a red lever on the right side, little rubber feet. Empty slots. Square 1:1." },
+  { "name": "ob-scale", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a kitchen WEIGHING SCALE seen from the side, a low wide cream-coloured base with a flat silver weighing platform on top and a round dial with a red needle on the front. Wide and low (about 3 times wider than tall). Square 1:1." },
+  { "name": "ob-lever", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a chunky toy-like LEVER: a small grey metal base box with a metal stick tilted to the right and a shiny red ball knob on top. Square 1:1." },
+  { "name": "ob-spatula", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: the flat metal head of a big kitchen SPATULA lying perfectly horizontal like a platform, seen from the side and slightly above so you see its slotted top surface, no handle. Very wide and thin. Square 1:1." },
+  { "name": "ob-sugar", "prompt": "Next prop, same style, front view, solid flat magenta (#FF00FF) background: one big sparkly white SUGAR CUBE, a perfect cube seen straight from the front (a square face), visible sugar crystal texture and a few sparkles. Square 1:1." },
+  { "name": "ob-board", "prompt": "Next prop, same style, front view, solid flat magenta (#FF00FF) background: a wooden CUTTING BOARD standing upright, tall and narrow (about 4 times taller than wide), light wood grain, a hanging hole near the top. Square 1:1 image." },
+  { "name": "ob-flag", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a cocktail TOOTHPICK FLAG standing upright: a tall thin wooden toothpick with a small green triangular paper flag at the top. Square 1:1." },
+  { "name": "ob-shelf", "prompt": "Next prop, same style, front view, solid flat magenta (#FF00FF) background: a short wooden wall SHELF plank, very wide and thin, with two small black metal brackets underneath. Square 1:1." },
+  { "name": "ob-sign", "prompt": "Next prop, same style, front view, solid flat magenta (#FF00FF) background: a small blank CHALKBOARD sign with a wooden frame, wider than tall (about 2:1), completely blank dark green-black board, no writing at all. Square 1:1." }
+]

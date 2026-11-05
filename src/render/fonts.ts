@@ -1,6 +1,7 @@
 // Typography: one chunky cartoon display face + one rounded body face, both bundled in public/fonts
 // (so they work offline). Every text in the game should use these helpers.
 import type * as Phaser from 'phaser';
+import { RES } from './art';
 
 export const DISPLAY = '"Luckiest Guy", "Arial Black", Impact, sans-serif';
 export const BODY = 'Nunito, "Segoe UI", Arial, sans-serif';
@@ -10,12 +11,12 @@ type Style = Phaser.Types.GameObjects.Text.TextStyle;
 
 /** Big chunky headline text (titles, banners, names, popups). */
 export function display(size: number, color = '#ffe9c7', extra: Style = {}): Style {
-  return { fontFamily: DISPLAY, fontSize: `${size}px`, color, stroke: INK, strokeThickness: Math.max(3, Math.round(size / 9)), ...extra };
+  return { fontFamily: DISPLAY, fontSize: `${size}px`, color, stroke: INK, strokeThickness: Math.max(3, Math.round(size / 9)), resolution: RES * 1.4, ...extra };
 }
 
 /** Readable body text. weight: 600 regular, 700 semi-bold, 800 bold, 900 black. */
 export function body(size: number, color = '#f1e4d2', weight: 600 | 700 | 800 | 900 = 800, extra: Style = {}): Style {
-  return { fontFamily: BODY, fontStyle: String(weight), fontSize: `${size}px`, color, ...extra };
+  return { fontFamily: BODY, fontStyle: String(weight), fontSize: `${size}px`, color, resolution: RES * 1.4, ...extra };
 }
 
 /** Soft drop shadow under any text. */

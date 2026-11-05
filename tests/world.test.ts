@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PHYS, T, VIEW } from '../src/sim/constants';
+import { PHYS, T, WORLD_VIEW as VIEW } from '../src/sim/constants';
 import { bottom, cx, flatRoom, frames, makeWorld, toward, until } from './helpers';
 
 describe('movement', () => {
@@ -156,7 +156,7 @@ describe('kitchen gadgets', () => {
     lvl.recipe = ['bread', 'cheese'];
     const w = makeWorld(lvl, 2);
     const a = w.players[0];
-    w.players[1].x = 30 * T;
+    w.players[1].x = 16 * T;
     frames(w, 10);
     until(w, () => [toward(a, 4 * T + 20)], () => Math.abs(cx(a) - (4 * T + 20)) < 4, 300);
     frames(w, 2, (_, f) => [{ grab: f === 0 }]);

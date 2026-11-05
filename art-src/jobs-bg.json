@@ -1,0 +1,12 @@
+[
+  {
+    "name": "bg-kitchen",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer set in a giant cosy kitchen. I need the BACKGROUND WALL for the levels, in the same soft chunky cartoon game art style (clean outlines, warm saturated colours, soft shading). Straight-on side view of a big warm kitchen wall: cream subway tiles on the lower half, warm peach painted wall above, a window with sunlight and a plant, wooden open shelves with colourful jars and spice pots, a row of hanging copper pans and utensils on a rail. Keep it calm and slightly soft so characters in front stand out. IMPORTANT: no counter, no floor, no furniture at the bottom, no characters, no text. Wide 16:9 landscape image."
+  },
+  { "name": "bg-kitchen2", "prompt": "Another background wall, same style and same kitchen, continuing to the right: cream subway tiles on the lower half, warm peach wall above, a big wall clock, a corkboard with recipe cards, a hanging garlic braid and a shelf with cookbooks and jars. Calm and slightly soft. No counter, no floor, nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-cabinet", "prompt": "Now a seamless TILEABLE texture in the same style: the front of warm honey-brown wooden kitchen cabinets, flat straight-on view, vertical wood planks with gentle grain, simple and not busy, evenly lit, no handles, no frame, the pattern must tile seamlessly left-right and top-bottom. Square 1:1." },
+  { "name": "tex-marble", "prompt": "Another seamless TILEABLE texture, same style: light cream marble countertop surface with soft grey veins, flat straight-on, evenly lit, tiles seamlessly in all directions. Square 1:1." },
+  { "name": "bg-menu", "prompt": "A title-screen background in the same art style: a giant cosy kitchen counter seen from the side at tiny-monster scale, a huge pot, a toaster, a cutting board and scattered sandwich ingredients, warm sunlight, plenty of calm empty space in the centre for menu buttons. No characters, no text. Wide 16:9 landscape." }
+]

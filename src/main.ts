@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { unlockAudio } from './audio';
 import { initInput, injectTap } from './input';
 import { initPwa } from './pwa';
+import { RES } from './render/art';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { LobbyScene } from './scenes/LobbyScene';
@@ -18,7 +19,7 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
   backgroundColor: '#140e0a',
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW.w, height: VIEW.h },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW.w * RES, height: VIEW.h * RES },
   render: { antialias: true },
   scene: [BootScene, MenuScene, LocalScene, LobbyScene, GameScene],
 });

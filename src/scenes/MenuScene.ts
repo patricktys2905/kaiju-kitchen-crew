@@ -3,12 +3,16 @@ import { sfx } from '../audio';
 import { clearTaps, consumeTap } from '../input';
 import { applyPendingUpdate } from '../pwa';
 import { SPECIES, VIEW } from '../sim/constants';
+import { fitCamera, hasArt } from '../render/art';
 import { goFullscreen, isTouchDevice, setTouchMode } from '../touch';
 import { mountPanel } from '../ui';
 
 /** Draws a little kitchen with kaiju bouncing along the counter (behind the menus). */
 export function drawMenuBackdrop(scene: Phaser.Scene): void {
+  fitCamera(scene);
   const g = scene.add.graphics();
+  if (hasArt('bg-menu')) scene.add.image(0, 0, 'bg-menu').setOrigin(0).setDisplaySize(VIEW.w, VIEW.h).setDepth(-1);
+  else {
   g.fillStyle(0xfaf1e2, 1).fillRect(0, 0, VIEW.w, VIEW.h);
   g.lineStyle(2, 0xe0cfb4, 1);
   for (let y = 0; y < 560; y += 24) {
@@ -20,14 +24,15 @@ export function drawMenuBackdrop(scene: Phaser.Scene): void {
   g.fillStyle(0x9a6438, 1).fillRect(0, 614, VIEW.w, 106);
   g.fillStyle(0x7b4c28, 1);
   for (let x = 0; x < VIEW.w; x += 160) g.fillRect(x, 614, 3, 106);
+  }
   const picks = [0, 9, 2, 7, 15, 5];
   picks.forEach((sp, i) => {
     if (!scene.textures.exists(`kaiju-${sp}`)) return;
     const img = scene.add.image(90 + i * 220, 600, `kaiju-${sp}`).setOrigin(0.5, 1);
-    img.setScale(70 / img.height);
+    img.setScale(96 / img.height);
     scene.tweens.add({ targets: img, y: 600 - 26, duration: 380 + i * 37, yoyo: true, repeat: -1, ease: 'Quad.easeOut', delay: i * 90 });
   });
-  g.fillStyle(0x140e0a, 0.35).fillRect(0, 0, VIEW.w, VIEW.h);
+  scene.add.graphics().setDepth(5).fillStyle(0x140e0a, 0.35).fillRect(0, 0, VIEW.w, VIEW.h);
   void SPECIES;
 }
 

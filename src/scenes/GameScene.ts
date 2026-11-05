@@ -5,7 +5,7 @@ import { sfx } from '../audio';
 import { clearTaps, consumeTap, Controllers, mergedInput, readDevices } from '../input';
 import type { LobbySeat, NetGuest, NetHost, NetMsg } from '../net/net';
 import { applySnapshot, extrapolate, makeSnapshot } from '../net/snapshot';
-import { fitCamera, hasArt, RES, SpritePool } from '../render/art';
+import { addSlice, fitCamera, hasArt, RES, SlicePool, SpritePool } from '../render/art';
 import { buildStatic, drawDynamic, placeItem } from '../render/draw';
 import { body, display, popIn, withShadow } from '../render/fonts';
 import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
@@ -39,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   private hudLayer!: Phaser.GameObjects.Layer;
   private pool!: SpritePool;
   private hudPool!: SpritePool;
+  private slices!: SlicePool;
   private hud!: Phaser.GameObjects.Graphics;
   private kaiju: Phaser.GameObjects.Image[] = [];
   private tags: Phaser.GameObjects.Text[] = [];
@@ -100,13 +101,14 @@ export class GameScene extends Phaser.Scene {
     const H = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.hudLayer.add(o); return o; };
     this.pool = new SpritePool(this, this.worldLayer);
     this.hudPool = new SpritePool(this, this.hudLayer);
+    this.slices = new SlicePool(this, this.worldLayer);
     this.time0 = 0;
 
     buildStatic(this, this.worldLayer, w);
     for (const s of w.signs) {
       const t = L(this.add.text(s.x, s.y, s.text, body(15, '#fff6e6', 800, { wordWrap: { width: 230 }, align: 'center' })).setOrigin(0, 0).setDepth(1));
       if (hasArt('ob-sign')) {
-        L(this.add.image(s.x - 30, s.y - 24, 'ob-sign').setOrigin(0).setDisplaySize(t.width + 60, t.height + 48).setDepth(0.9));
+        L(addSlice(this, 'ob-sign', s.x - 30, s.y - 24, t.width + 60, t.height + 48, 0.24).setOrigin(0).setDepth(0.9));
       } else {
         const bg = L(this.add.graphics().setDepth(0.5));
         bg.fillStyle(0x2f3b2f, 0.92).fillRoundedRect(s.x - 10, s.y - 8, t.width + 20, t.height + 16, 8);
@@ -358,7 +360,8 @@ export class GameScene extends Phaser.Scene {
     this.dyn.clear();
     this.front.clear();
     this.pool.begin();
-    drawDynamic(this.dyn, w, time, this.pool);
+    this.slices.begin();
+    drawDynamic(this.dyn, w, time, this.pool, this.slices);
 
     w.scales.forEach((s, i) => {
       const t = this.scaleTexts[i];
@@ -421,6 +424,7 @@ export class GameScene extends Phaser.Scene {
       placeItem(this.pool, this.front, it.kind, it.x + PHYS.item / 2, it.y + PHYS.item / 2 - 10, PHYS.item, 12);
     }
     this.pool.end();
+    this.slices.end();
 
     // popups
     for (const p of this.popups) {

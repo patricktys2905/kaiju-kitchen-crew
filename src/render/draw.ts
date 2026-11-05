@@ -1,6 +1,6 @@
 // Shape drawing for the kitchen: backdrop, counters, gadgets and ingredients. Kaiju use the art images.
 import type * as Phaser from 'phaser';
-import { fitInside, hasArt, type SpritePool } from './art';
+import { addSlice, fitInside, hasArt, type SlicePool, type SpritePool } from './art';
 import { ITEMS, PHYS, T, type ItemKind } from '../sim/constants';
 import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID } from '../sim/level';
 import type { World } from '../sim/world';
@@ -59,7 +59,10 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       let n = 1;
       while (at(i + n, j) === TILE_SHELF) n++;
       const shelfKey = fridge && hasArt('ob-glass-shelf') ? 'ob-glass-shelf' : 'ob-shelf';
-      if (hasArt(shelfKey)) layer.add(scene.add.image(x - 4, y - 6, shelfKey).setOrigin(0).setDisplaySize(n * T + 8, fridge ? 22 : 34).setDepth(0.3));
+      if (hasArt(shelfKey)) {
+        const hh = fridge ? 22 : 30, tex = scene.textures.get(shelfKey).getSourceImage().height;
+        layer.add(addSlice(scene, shelfKey, x - 4, y - 5, n * T + 8, hh, hh / tex).setOrigin(0).setDepth(0.3));
+      }
       else for (let k = 0; k < n; k++) drawShelfTile(g, x + k * T, y, k === 0, k === n - 1);
     } else if (t === TILE_HOT) {
       drawHob(g, x, y, T, 2);
@@ -224,8 +227,9 @@ export function placeItem(pool: SpritePool | null, g: G, kind: ItemKind, cx: num
 }
 
 /** Everything that moves or changes: gadgets, cubes, ingredients. Uses the Gemini art when present. */
-export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | null = null): void {
+export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | null = null, slices: SlicePool | null = null): void {
   const art = (k: string) => !!pool && hasArt(k);
+  const sliced = (k: string) => !!slices && hasArt(k);
   // checkpoints (toothpick flags)
   w.checks.forEach((c, i) => {
     const x = c.x + T / 2, base = c.y + T;
@@ -244,9 +248,9 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   // plates (the exit)
   for (const p of w.plates) {
     const cx = p.x + p.w / 2, y = p.y;
-    if (art('ob-plate')) {
-      const img = pool!.take('ob-plate', 2).setOrigin(0.5, 1);
-      img.setDisplaySize(p.w + 20, Math.min(70, (p.w + 20) * (img.height / img.width))).setPosition(cx, y + 10);
+    if (sliced('ob-plate')) {
+      const hh = 56;
+      slices!.take('ob-plate', p.x - 10, y + 12 - hh, p.w + 20, hh, hh / 142, 2);
     } else {
       g.fillStyle(0x000000, 0.12).fillEllipse(cx, y + 2, p.w + 10, 16);
       g.fillStyle(0x8fb8d8, 1).fillEllipse(cx, y - 2, p.w, 18);
@@ -293,12 +297,10 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   // doors (cutting boards that slide up into the wall)
   for (const d of w.doors) {
     if (d.h < 1) continue;
-    if (art('ob-board')) {
-      const img = pool!.take('ob-board', 6).setOrigin(0, 0);
-      const tw = img.width, th = img.height;
-      // the board slides up: show its lower part only
-      img.setCrop(0, th * d.open, tw, th * (1 - d.open));
-      img.setDisplaySize(d.w + 14, d.fullH).setPosition(d.x - 7, d.topY - d.open * d.fullH);
+    if (sliced('ob-board')) {
+      if (d.h < 8) continue;
+      const ww = d.w + 14;
+      slices!.take('ob-board', d.x - 7, d.topY, ww, d.h, ww / 290, 6);
       continue;
     }
     g.fillStyle(0xc98d4c, 1).fillRect(d.x, d.y, d.w, d.h);
@@ -310,9 +312,17 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   // scales
   for (const s of w.scales) {
     const light = s.active ? 0x7ad37a : s.timer > 0 ? 0xffc04a : 0xbfc6cf;
-    if (art('ob-scale')) {
-      pool!.take('ob-scale', 6).setOrigin(0, 1).setDisplaySize(s.w + 8, s.h + 10).setPosition(s.x - 4, s.y + s.h + 2);
-      g.fillStyle(light, 0.55).fillRect(s.x + 4, s.y - 2, s.w - 8, 5);
+    if (sliced('ob-scale')) {
+      const hh = s.h + 14;
+      slices!.take('ob-scale', s.x - 4, s.y + s.h + 2 - hh, s.w + 8, hh, hh / 368, 6);
+      g.fillStyle(light, 0.6).fillRoundedRect(s.x + 6, s.y - 3, s.w - 12, 5, 2);
+      // the dial (drawn crisp on top of the stretched middle)
+      const dx = s.x + s.w / 2, dy = s.y + s.h / 2 + 6, r = 11;
+      g.fillStyle(0x6b7480, 1).fillCircle(dx, dy, r + 2);
+      g.fillStyle(0xffffff, 1).fillCircle(dx, dy, r);
+      const frac = Math.min(1, s.load / Math.max(1, s.need));
+      const ang = -Math.PI * 0.75 + frac * Math.PI * 1.5;
+      g.lineStyle(2, 0xd23a2a, 1).lineBetween(dx, dy, dx + Math.cos(ang - Math.PI / 2) * (r - 2), dy + Math.sin(ang - Math.PI / 2) * (r - 2));
     } else {
       g.fillStyle(0xf6f3ee, 1).fillRoundedRect(s.x, s.y + 6, s.w, s.h - 6, 6);
       g.fillStyle(light, 1).fillRect(s.x + 2, s.y, s.w - 4, 8);
@@ -336,7 +346,8 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
     }
     if (l.on === undefined) g.fillStyle(0x2b2b2b, 1).fillRoundedRect(l.x + l.w / 2 - 6, l.y + 14, 12, 18, 3);
     if (art('ob-spatula')) {
-      pool!.take('ob-spatula', 6).setOrigin(0, 0).setDisplaySize(l.w + 10, 24).setPosition(l.x - 5, l.y - 4);
+      if (sliced('ob-spatula')) slices!.take('ob-spatula', l.x - 5, l.y - 5, l.w + 14, 26, 26 / 115, 6);
+      else pool!.take('ob-spatula', 6).setOrigin(0, 0).setDisplaySize(l.w + 10, 24).setPosition(l.x - 5, l.y - 4);
       continue;
     }
     g.fillStyle(0xaeb6bf, 1).fillRoundedRect(l.x, l.y, l.w, 14, 4);
@@ -349,8 +360,9 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
     g.fillStyle(0x000000, 0.15).fillEllipse(t.x + t.w / 2, t.y + t.h, t.w, 8);
     if (art('ob-toaster')) {
       const squash = t.popT > 0.35 ? 0.9 : 1;
-      const img = pool!.take('ob-toaster', 6).setOrigin(0.5, 1);
-      img.setDisplaySize(t.w + 12, (t.h + 14) * squash).setPosition(t.x + t.w / 2, t.y + t.h + 2);
+      const hh = (t.h + 18) * squash;
+      if (sliced('ob-toaster')) slices!.take('ob-toaster', t.x - 6, t.y + t.h + 2 - hh, t.w + 12, hh, hh / 346, 6);
+      else pool!.take('ob-toaster', 6).setOrigin(0.5, 1).setDisplaySize(t.w + 12, hh).setPosition(t.x + t.w / 2, t.y + t.h + 2);
     } else {
       g.fillStyle(0xb9c1ca, 1).fillRoundedRect(t.x, t.y, t.w, t.h, 10);
       g.fillStyle(0xe3e8ee, 1).fillRoundedRect(t.x + 4, t.y + 3, t.w - 8, 10, 6);
@@ -409,9 +421,11 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   for (const j of w.jellies) {
     const sq = j.frozen ? 1 : 1 - Math.sin((0.3 - j.wobble) * 30) * j.wobble * 0.6;
     if (art('ob-jelly')) {
-      const img = pool!.take('ob-jelly', 6).setOrigin(0.5, 1);
-      img.setDisplaySize(j.w + 8, (j.h + 12) * sq).setPosition(j.x + j.w / 2, j.y + j.h + 2);
-      if (j.frozen) img.setTint(0x9fd8ff);
+      for (let xx = j.x; xx < j.x + j.w - 1; xx += T) {
+        const img = fitInside(pool!.take('ob-jelly', 6), T + 10, j.h + 16).setOrigin(0.5, 1);
+        img.setScale(img.scaleX * (2 - sq), img.scaleY * sq).setPosition(xx + T / 2, j.y + j.h + 3);
+        if (j.frozen) img.setTint(0x9fd8ff);
+      }
     } else {
       g.fillStyle(j.frozen ? 0x9fd8ff : 0x7ad84a, 0.95).fillRoundedRect(j.x, j.y + j.h * (1 - sq), j.w, j.h * sq, 8);
     }
@@ -433,9 +447,12 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
       if (b.broken) for (let k = 0; k < 5; k++) g.fillStyle(0x7ac8ff, a * 0.7).fillCircle(b.x + 6 + k * 7, b.y + b.h - 4 + drop * 0.2, 6 * (1 - a) + 3);
     } else {
       if (art('ob-cracker')) {
-        for (let yy = b.y, k = 0; yy < b.y + b.h; yy += 2 * T, k++) {
-          const hh = Math.min(2 * T, b.y + b.h - yy);
-          pool!.take('ob-cracker', 6).setOrigin(0, 0).setDisplaySize(b.w + 10, hh + 4).setPosition(b.x - 5 + (b.broken ? (k % 2 ? 1 : -1) * drop * 0.6 : 0), yy - 2 + drop).setAlpha(a).setAngle(b.broken ? (k % 2 ? 1 : -1) * drop * 0.5 : 0);
+        const cw = b.w + 12, ch = cw * (512 / 361);
+        for (let yy = b.y + b.h - ch, k = 0; yy > b.y - ch + 4; yy -= ch - 6, k++) {
+          const img = pool!.take('ob-cracker', 6).setOrigin(0, 0).setDisplaySize(cw, ch);
+          const cut = Math.max(0, b.y - yy); // never poke out above the wall
+          img.setCrop(0, cut * (512 / ch), 361, 512 - cut * (512 / ch));
+          img.setPosition(b.x - 6 + (b.broken ? (k % 2 ? 1 : -1) * drop * 0.6 : 0), yy + drop).setAlpha(a).setAngle(b.broken ? (k % 2 ? 1 : -1) * drop * 0.5 : 0);
         }
       } else {
         g.fillStyle(0xd9a24a, a).fillRect(b.x, b.y + drop, b.w, b.h);

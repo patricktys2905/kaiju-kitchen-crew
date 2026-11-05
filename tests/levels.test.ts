@@ -87,3 +87,20 @@ describe('Shelf Help can be finished', () => {
     });
   }
 });
+
+describe('respawning is safe at every checkpoint', () => {
+  for (const lvl of LEVELS) {
+    it(lvl.name, () => {
+      for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
+        const w = makeWorld(lvl, n);
+        for (let c = -1; c < w.checks.length; c++) {
+          w.checkpoint = c;
+          (w as unknown as { respawn(): void }).respawn();
+          frames(w, 120); // nobody touches anything: they must just stand there safely
+          expect(w.phase, `${n} kaiju at checkpoint ${c}`).toBe('play');
+          expect(w.splats).toBe(0);
+        }
+      }
+    });
+  }
+});

@@ -205,10 +205,21 @@ export class World {
 
   /** Lines the team up from a tile (3 across, then stacked on each other's heads). */
   private placeTeam(tx: number, ty: number): void {
+    // up to 3 columns next to the flag that have safe solid ground (no mousetraps, hobs, pits);
+    // whoever doesn't fit stands on a friend's head
+    const safe = (i: number) => {
+      const below = this.tileAt(i, ty + 1);
+      return !this.tileAt(i, ty) && below !== 0 && below !== TILE_SHELF && !isHazardTile(below)
+        && !this.burners.some(b => i * T + 1 > b.x && i * T < b.x + b.w && b.y <= (ty + 1) * T);
+    };
+    const cols: number[] = [];
+    for (const d of [0, 1, 2, -1, -2, 3, -3]) if (cols.length < 3 && safe(tx + d)) cols.push(tx + d);
+    if (!cols.length) cols.push(tx);
+    cols.sort((a, b) => a - b);
     this.players.forEach((p, i) => {
       p.big = false; p.spicyT = 0; p.fizz = false; p.w = PHYS.pw; p.h = PHYS.ph; p.inRobot = -1;
-      p.x = tx * T + 3 + (i % 3) * T;
-      p.y = (ty + 1) * T - PHYS.ph - Math.floor(i / 3) * (PHYS.ph + 2);
+      p.x = cols[i % cols.length] * T + 3;
+      p.y = (ty + 1) * T - PHYS.ph - Math.floor(i / cols.length) * (PHYS.ph + 2);
       p.vx = p.vy = 0;
       p.carry = -1;
       p.safeX = p.x;

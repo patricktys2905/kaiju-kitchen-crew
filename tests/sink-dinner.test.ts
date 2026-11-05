@@ -198,3 +198,18 @@ describe('Head Chef', () => {
     expect(w.phase).toBe('play');
   });
 });
+
+describe('snoozing kaiju on belts', () => {
+  for (const name of ['Conveyor Chaos', 'Grand Banquet']) {
+    it(`${name}: a kaiju left asleep on the belt is carried off safely, not onto the mousetraps`, () => {
+      const lv = dinner(name);
+      const w = makeWorld({ ...lv, ents: lv.ents.filter(e => e.t !== 'hand') }, 2);
+      const belt = w.belts.find(b => b.dir > 0)!;
+      const [a, b] = w.players;
+      place(b, belt.x + belt.w - 60, 16 * T); place(a, belt.x - 100, 16 * T);
+      frames(w, 240);
+      expect(w.phase).toBe('play');
+      expect(w.splats).toBe(0);
+    });
+  }
+});

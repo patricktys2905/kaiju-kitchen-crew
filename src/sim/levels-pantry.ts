@@ -90,12 +90,12 @@ function mechArm(): LevelDef {
 
 function orderChaos(): LevelDef {
   const b = new LevelBuilder('Order Chaos', W3, 'New order tickets keep changing the rules!', 74, ['cereal', 'flour']).room();
-  b.solid(14, 10, 4, 6) // 6 tiles tall: too tall to climb... normally
+  b.solid(11, 14, 3, 2).solid(14, 12, 4, 4) // two easy steps up (moon gravity makes it a floaty hop)
     .traps(24, 16, 2).traps(29, 16, 2).traps(34, 16, 2)
     .shelf(44, 13, 3)
     .add(
       { t: 'ticket', x: 6, rule: 'lowgrav' },
-      { t: 'item', kind: 'cereal', x: 16, y: 9 },
+      { t: 'item', kind: 'cereal', x: 16, y: 11 },
       { t: 'ticket', x: 20, rule: 'reverse' },
       { t: 'ticket', x: 38, rule: 'dark' },
       { t: 'item', kind: 'flour', x: 45, y: 12 },

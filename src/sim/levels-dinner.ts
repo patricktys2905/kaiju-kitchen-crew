@@ -40,7 +40,7 @@ function balancingAct(): LevelDef {
 
 function conveyorChaos(): LevelDef {
   const b = new LevelBuilder('Conveyor Chaos', W6, 'Conveyor belts AND the Chef’s Hand. Keep walking!', 72, ['fries', 'soup']).room();
-  b.clear(8, 16, 12, 1).clear(24, 16, 12, 1).traps(36, 16, 2)
+  b.clear(8, 16, 12, 1).clear(24, 16, 12, 1).traps(37, 16, 2) // one safe tile after the belt: a snoozing kaiju carried off it stops there
     .solid(12, 12, 4, 1).solid(26, 12, 4, 1).solid(40, 12, 6, 1).solid(52, 12, 6, 1).solid(62, 12, 10, 1)
     .add(
       { t: 'hand', period: 4, offset: 2 },
@@ -51,7 +51,7 @@ function conveyorChaos(): LevelDef {
       { t: 'pot', x: 58, y: 15 },
       { t: 'plate', x: 63, y: 15, w: 8 },
       { t: 'sign', x: 1, y: 9, text: 'Belts carry you. Walk against them!' },
-      { t: 'sign', x: 22, y: 8, text: 'This one runs into mousetraps: jump off the end!' },
+      { t: 'sign', x: 22, y: 8, text: 'Mousetraps after this belt: jump them!' },
     );
   return b.start(2).build();
 }
@@ -106,7 +106,7 @@ function grandBanquet(): LevelDef {
     .clear(12, 16, 10, 1).solid(15, 12, 4, 1)
     .solid(26, 13, 3, 3).solid(29, 11, 3, 5).solid(28, 9, 4, 2)
     .solid(40, 7, 10, 9)
-    .clear(55, 16, 12, 1).traps(67, 16, 2)
+    .clear(55, 16, 12, 1).traps(68, 16, 2)
     .solid(58, 12, 5, 1).solid(72, 12, 6, 1).solid(84, 12, 6, 1).solid(98, 12, 11, 1)
     .add(
       { t: 'hand', period: 4.5, offset: 3 },

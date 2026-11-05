@@ -137,6 +137,14 @@ describe('Flambé', () => {
       until(w, () => ord.map((p, k) => ({ p, k })).sort((x, y) => x.p.idx - y.p.idx).map(({ p, k }) => walker(w, p, (30 - k * 0.9) * T)), () => ord.every((p, k) => p.grounded && Math.abs(cx(p) - (30 - k * 0.9) * T) < 8), 2400, 'over the bridge');
     });
   }
+  it('the vent alone (no moon gravity ticket) takes a kaiju up the tower', () => {
+    const lv = lvl('Flambé');
+    const w = makeWorld({ ...lv, ents: lv.ents.filter(e => e.t !== 'ticket') }, 2);
+    const [b, a] = w.players;
+    place(a, 34 * T, 16 * T); place(b, 33 * T, 16 * T);
+    frames(w, 10);
+    until(w, (_, f) => [{}, { ...toward(a, a.y < 6 * T ? 41.5 * T : 38 * T, 4), jump: f % 40 === 0 }], () => up(a, 4 * T), 1500, 'up the tower');
+  });
   it('moon gravity + the vent take everyone up the tower', () => {
     const w = makeWorld(lvl('Flambé'), 3);
     w.players.forEach((p, i) => place(p, 33 * T + i * 40, 16 * T));

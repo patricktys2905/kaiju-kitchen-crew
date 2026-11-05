@@ -35,7 +35,7 @@ export type EntDef =
   | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
   | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
   | { t: 'robot'; x: number; y: number } // Pot Mech, 3x3 tiles, top-left tile
-  | { t: 'ticket'; x: number; rule: TicketRule; dur?: number } // prints once every kaiju is past column x
+  | { t: 'ticket'; x: number; rule: TicketRule; dur?: number } // prints when the first kaiju reaches column x
   | { t: 'melty'; x: number; y: number; w: number; h: number } // chocolate: melts while stood on, sets again later
   | { t: 'vent'; x: number; y: number; w: number; h: number; cold: number; hot: number; offset?: number } // steam column h tiles tall rising from row y
   | { t: 'jet'; x: number; y: number; w: number; h: number; dir: 1 | -1; cold?: number; hot?: number; offset?: number } // tap jet zone (cold 0 = always on)

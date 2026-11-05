@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { MAX_PLAYERS, MIN_PLAYERS, PHYS, T } from '../src/sim/constants';
 import { PANTRY_LEVELS } from '../src/sim/levels-pantry';
 import type { Player, PlayerInput, World } from '../src/sim/world';
-import { bottom, cx, flatRoom, frames, makeWorld, toward, until } from './helpers';
+import { bottom, cx, flatRoom, frames, makeWorld, toward, until, walker } from './helpers';
 
 function place(p: Player, x: number, floorY: number): void {
   p.x = x - p.w / 2; p.y = floorY - p.h; p.vx = p.vy = 0;
@@ -253,6 +253,22 @@ describe('Mech Arm (level)', () => {
     tap(w, 0);
     frames(w, 30);
     expect(w.doors[0].open).toBe(1);
+  });
+});
+
+describe('ticket levels never depend on a ticket', () => {
+  it('Order Chaos: the steps can be climbed in normal gravity, by every kaiju on its own', () => {
+    const lv = PANTRY_LEVELS.find(l => l.name === 'Order Chaos')!;
+    const w = makeWorld({ ...lv, ents: lv.ents.filter(e => e.t !== 'ticket') }, 2);
+    frames(w, 10);
+    for (const [k, p] of [...w.players].sort((a, b) => b.x - a.x).entries()) {
+      until(w, () => only(p.idx, walker(w, p, (21 - k) * T)), () => p.grounded && Math.abs(cx(p) - (21 - k) * T) < 10, 900, `P${p.idx} over the steps`);
+    }
+  });
+  it('solo play: a ticket prints when the first kaiju reaches it, even with a friend asleep at the start', () => {
+    const w = makeWorld(PANTRY_LEVELS.find(l => l.name === 'Order Chaos')!, 2);
+    frames(w, 10);
+    until(w, () => [{}, { mx: 1 }], () => w.rule === 'lowgrav', 300, 'ticket');
   });
 });
 

@@ -1,0 +1,31 @@
+{
+  "name": "kaiju-kitchen-crew",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:online": "node scripts/smoke-online.mjs",
+    "smoke:online-backup": "node scripts/smoke-online.mjs backup",
+    "phone": "vite --host"
+  },
+  "dependencies": {
+    "mqtt": "^5.16.1",
+    "peerjs": "^1.5.5",
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1",
+    "sharp": "^0.35.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vite-node": "^6.0.0",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0"
+  }
+}

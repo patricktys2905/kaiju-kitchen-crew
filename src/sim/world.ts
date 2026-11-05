@@ -16,7 +16,7 @@ export const NO_INPUT: PlayerInput = { mx: 0, jump: false, grab: false };
 
 export interface Box { x: number; y: number; w: number; h: number }
 
-type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner' | 'jelly' | 'block' | 'robot';
+type Kind = 'player' | 'crate' | 'lift' | 'door' | 'scale' | 'toaster' | 'pot' | 'burner' | 'jelly' | 'block' | 'robot' | 'melty' | 'bubble' | 'belt';
 interface BodyBase extends Box { kind: Kind; idx: number }
 
 export interface Player extends BodyBase {
@@ -38,7 +38,7 @@ export interface Player extends BodyBase {
   inRobot: number; // index of the Pot Mech this kaiju is crewing, or -1
 }
 export interface Crate extends BodyBase { kind: 'crate'; vx: number; vy: number; need: number; weight: number; homeX: number; homeY: number; pushers: number }
-export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number }
+export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number; bal?: { other: number; base: number; travel: number; left: boolean } }
 export interface Door extends BodyBase { kind: 'door'; on: string; topY: number; fullH: number; open: number }
 export interface Scale extends BodyBase { kind: 'scale'; id: string; need: number; hold: number; load: number; timer: number; active: boolean }
 export interface Toaster extends BodyBase { kind: 'toaster'; on: string; popT: number }
@@ -48,7 +48,17 @@ export interface Jelly extends BodyBase { kind: 'jelly'; on?: string; frozen: bo
 export interface Block extends BodyBase { kind: 'block'; mat: 'ice' | 'cracker'; broken: boolean; breakT: number }
 /** The Pot Mech: kaiju climb in (GRAB) and each crew seat works one part: legs, jump, arm. */
 export interface Robot extends BodyBase { kind: 'robot'; vx: number; vy: number; facing: 1 | -1; grounded: boolean; crew: number[]; carry: number; homeX: number; homeY: number; ckX: number; ckY: number; landT: number; armT: number }
-export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner | Jelly | Block | Robot;
+export interface Melty extends BodyBase { kind: 'melty'; melt: number; gone: boolean; regrow: number }
+export interface Bubble extends BodyBase { kind: 'bubble'; life: number }
+export interface Belt extends BodyBase { kind: 'belt'; dir: number; speed: number }
+export interface Cycler { x: number; y: number; w: number; h: number; cold: number; hot: number; offset: number; state: 'cold' | 'warn' | 'hot' }
+export interface Vent extends Cycler {}
+export interface Jet extends Cycler { dir: number }
+export interface Water { x: number; w: number; low: number; high: number; on?: string; level: number }
+export interface Bubbler { x: number; y: number; every: number; t: number }
+export type HandState = 'idle' | 'warn' | 'slam' | 'lift';
+export interface Hand { period: number; state: HandState; t: number; tx: number }
+export type Body = Player | Crate | Lift | Door | Scale | Toaster | Pot | Burner | Jelly | Block | Robot | Melty | Bubble | Belt;
 type Mover = Player | Crate | Robot;
 /** item.carrier values >= this mean "held by robot (carrier - ROBOT_CARRIER)". */
 export const ROBOT_CARRIER = 1000;
@@ -75,6 +85,8 @@ export type GameEvent =
   | { type: 'melt' | 'smash'; block: number }
   | { type: 'board' | 'exit' | 'heavy' | 'robotJump' | 'robotLand'; p: number }
   | { type: 'ticket'; rule: TicketRule }
+  | { type: 'drip' | 'reform' | 'handWarn' | 'handSlam' | 'pop' | 'splash' }
+  | { type: 'swim'; p: number }
   | { type: 'ticketEnd' }
   | { type: 'good' | 'wrong' | 'burn'; item: number }
   | { type: 'recipeDone' | 'clear' | 'respawn' | 'check' | 'scaleOn' | 'scaleOff' | 'toast' | 'door' | 'burnerHot' };
@@ -101,6 +113,14 @@ export class World {
   blocks: Block[] = [];
   pickups: Pickup[] = [];
   robots: Robot[] = [];
+  meltys: Melty[] = [];
+  vents: Vent[] = [];
+  jets: Jet[] = [];
+  waters: Water[] = [];
+  bubblers: Bubbler[] = [];
+  bubbles: Bubble[] = [];
+  hands: Hand[] = [];
+  belts: Belt[] = [];
   tickets: Ticket[] = [];
   rule: TicketRule | null = null; // current order-ticket rule
   ruleT = 0; // seconds left (0 = until the next ticket)
@@ -153,12 +173,24 @@ export class World {
           break;
         }
         case 'ticket': this.tickets.push({ x: e.x * T, rule: e.rule, dur: e.dur ?? 0, fired: false }); break;
+        case 'melty': this.meltys.push({ kind: 'melty', idx: this.meltys.length, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, melt: 0, gone: false, regrow: 0 }); break;
+        case 'vent': this.vents.push({ x: e.x * T, y: (e.y - e.h) * T, w: e.w * T, h: e.h * T, cold: e.cold, hot: e.hot, offset: e.offset ?? 0, state: 'cold' }); break;
+        case 'jet': this.jets.push({ x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, dir: e.dir, cold: e.cold ?? 0, hot: e.hot ?? 1, offset: e.offset ?? 0, state: 'cold' }); break;
+        case 'water': this.waters.push({ x: e.x * T, w: e.w * T, low: e.low * T, high: e.high * T, on: e.on, level: e.on === undefined ? e.high * T : e.low * T }); break;
+        case 'bubbler': this.bubblers.push({ x: e.x * T, y: e.y * T, every: e.every, t: e.every * 0.6 }); break;
+        case 'hand': this.hands.push({ period: e.period, state: 'idle', t: -(e.offset ?? 0), tx: 0 }); break;
+        case 'balance': {
+          const a = this.lifts.length, mk = (x: number, left: boolean) => this.lifts.push({ kind: 'lift', idx: this.lifts.length, x: x * T, y: e.y * T, w: e.w * T, h: 20, ax: x * T, ay: e.y * T, bx: x * T, by: e.y * T, speed: 120, s: 0, dir: 1, wait: 0, bal: { other: left ? a + 1 : a, base: e.y * T, travel: e.travel * T, left } });
+          mk(e.x1, true); mk(e.x2, false);
+          break;
+        }
+        case 'belt': this.belts.push({ kind: 'belt', idx: this.belts.length, x: e.x * T, y: e.y * T, w: e.w * T, h: T, dir: e.dir, speed: e.speed ?? 90 }); break;
         case 'pickup': this.pickups.push({ kind: e.kind, x: e.x * T + 4, y: e.y * T + 4, respawn: 0 }); break;
         case 'jelly': this.jellies.push({ kind: 'jelly', idx: this.jellies.length, on: e.on, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, frozen: false, wobble: 0 }); break;
         case 'block': this.blocks.push({ kind: 'block', idx: this.blocks.length, mat: e.mat, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, broken: false, breakT: 0 }); break;
       }
     }
-    this.fixtures = [...this.lifts, ...this.doors, ...this.scales, ...this.toasters, ...this.pots, ...this.burners, ...this.jellies, ...this.blocks];
+    this.fixtures = [...this.lifts, ...this.doors, ...this.scales, ...this.toasters, ...this.pots, ...this.burners, ...this.jellies, ...this.blocks, ...this.meltys, ...this.belts];
     this.tetherLen = level.tether ?? 0;
     this.placeTeam(level.spawn.x, level.spawn.y);
     this.updateCamera();
@@ -209,9 +241,12 @@ export class World {
     this.levelT += STEP;
     this.updateSwitches();
     this.updateFridge();
+    this.updateStoveSink();
     this.updateDoors();
     this.updateBurners();
     this.updateLifts();
+    this.updateBubbles();
+    this.updateBelts();
     this.updateToasters();
     this.updateCrates();
     this.updateTickets();
@@ -221,6 +256,7 @@ export class World {
     this.applyTether();
     this.updateItems();
     this.updatePickups();
+    this.updateHands();
     this.checkHazards();
     if (this.phase !== 'play') return;
     this.updateCheckpoints();
@@ -247,10 +283,12 @@ export class World {
       if (forItem && f.kind === 'pot') continue; // ingredients fall into the pot
       if (f.kind === 'door' && f.h < 1) continue;
       if (f.kind === 'block' && f.broken) continue;
+      if (f.kind === 'melty' && f.gone) continue;
       out.push(f);
     }
     for (const c of this.crates) if (c !== b) out.push(c);
     for (const r of this.robots) if (r !== b) out.push(r);
+    for (const u of this.bubbles) if (u !== b) out.push(u);
     if (!forItem) for (const p of this.players) if (p !== b && p.inRobot < 0) out.push(p);
     return out;
   }
@@ -394,6 +432,15 @@ export class World {
 
   private updateLifts(): void {
     for (const l of this.lifts) {
+      if (l.bal) {
+        // balance pans: the heavier pan sinks, the other rises
+        const left = l.bal.left ? l : this.lifts[l.bal.other], right = l.bal.left ? this.lifts[l.bal.other] : l;
+        const d = Math.max(-l.bal.travel, Math.min(l.bal.travel, (this.weightOn(left) - this.weightOn(right)) * PHYS.balanceK));
+        const target = l.bal.base + (l.bal.left ? d : -d);
+        const step = Math.max(-l.speed * STEP, Math.min(l.speed * STEP, target - l.y));
+        if (Math.abs(step) > 0.01) this.moveKinematic(l, 0, step);
+        continue;
+      }
       const len = Math.hypot(l.bx - l.ax, l.by - l.ay) || 1;
       const ds = (l.speed * STEP) / len;
       let target: number;
@@ -414,7 +461,7 @@ export class World {
   }
 
   /** Moves a lift; riders come along, anyone underneath/beside blocks it. Returns false if blocked. */
-  private moveKinematic(l: Lift, dx: number, dy: number): boolean {
+  private moveKinematic(l: Box, dx: number, dy: number): boolean {
     const riders = this.ridersOf(l);
     const others = [...this.players.filter(p => p.inRobot < 0), ...this.crates, ...this.robots].filter(b => !riders.includes(b));
     const nb = { x: l.x + dx, y: l.y + dy, w: l.w, h: l.h };
@@ -522,6 +569,12 @@ export class World {
       }
       if (p.grounded) p.coyote = PHYS.coyote; else p.coyote -= STEP;
       if (jumpEdge) p.buffer = PHYS.jumpBuffer; else p.buffer -= STEP;
+      const water = this.waterAt(p.x + p.w / 2, p.y + p.h / 2);
+      if (water) {
+        // near the surface you can jump out; deeper down a jump is a swim stroke
+        if (p.y + p.h / 2 - water.level < 16) p.coyote = PHYS.coyote;
+        else if (p.buffer > 0) { p.vy = -PHYS.swimV; p.buffer = 0; this.events.push({ type: 'swim', p: p.idx }); }
+      }
       if (p.buffer > 0 && p.coyote > 0) {
         p.vy = p.fizz ? -PHYS.fizzV : -PHYS.jumpV;
         if (p.fizz) { p.fizz = false; this.events.push({ type: 'fizzJump', p: p.idx }); }
@@ -535,10 +588,13 @@ export class World {
 
       const mx = Math.max(-1, Math.min(1, inp.mx)) * (this.rule === 'reverse' ? -1 : 1);
       if (Math.abs(mx) > 0.2) p.facing = mx > 0 ? 1 : -1;
-      const target = Math.abs(mx) > 0.2 ? mx * PHYS.run * (this.rule === 'speedy' ? PHYS.speedy : 1) : 0;
+      const target = Math.abs(mx) > 0.2 ? mx * PHYS.run * (this.rule === 'speedy' ? PHYS.speedy : 1) * (water ? 0.7 : 1) : 0;
       const acc = (under === 'ice' ? PHYS.iceAccel : p.grounded ? PHYS.accelGround : PHYS.accelAir) * STEP;
       p.vx = p.vx < target ? Math.min(target, p.vx + acc) : Math.max(target, p.vx - acc);
-      p.vy = Math.min(this.maxFall, p.vy + this.gravity * STEP);
+      if (water) p.vy = Math.max(-PHYS.swimV, Math.min(260, p.vy * 0.92 - this.gravity * 0.35 * STEP)); // floaty
+      else p.vy = Math.min(this.maxFall, p.vy + this.gravity * STEP);
+      for (const v of this.vents) if (v.state === 'hot' && overlap(p, v)) p.vy = Math.max(-PHYS.ventMax, p.vy - PHYS.ventAcc * STEP);
+      for (const j of this.jets) if (j.state === 'hot' && overlap(p, j)) p.vx = Math.max(-PHYS.jetMax, Math.min(PHYS.jetMax, p.vx + j.dir * PHYS.jetAcc * STEP));
 
       const wantX = p.vx * STEP;
       const dX = this.moveX(p, wantX);
@@ -667,7 +723,9 @@ export class World {
         continue;
       }
       it.throwT = Math.max(0, it.throwT - STEP);
-      it.vy = Math.min(this.maxFall, it.vy + this.gravity * STEP);
+      if (this.waterAt(it.x + PHYS.item / 2, it.y + PHYS.item / 2)) { it.vy = Math.max(-150, it.vy * 0.88 - 700 * STEP); it.vx *= 0.95; }
+      else it.vy = Math.min(this.maxFall, it.vy + this.gravity * STEP);
+      for (const j of this.jets) if (j.state === 'hot' && overlap({ x: it.x, y: it.y, w: PHYS.item, h: PHYS.item }, j)) it.vx = Math.max(-PHYS.jetMax, Math.min(PHYS.jetMax, it.vx + j.dir * PHYS.jetAcc * STEP));
       const box = { x: it.x, y: it.y, w: PHYS.item, h: PHYS.item };
       const solids = this.solidsFor(null, true);
       const dx = this.sweepX(box, it.vx * STEP, solids);
@@ -735,8 +793,9 @@ export class World {
   private checkHazards(): void {
     for (const r of this.robots) {
       const probe = { x: r.x + 2, y: r.y - 1, w: r.w - 4, h: r.h + 2 };
-      const hot = this.tileHits(probe, null).some(t => isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T))));
-      if (hot || r.y > this.H + 40) { this.splat(this.players[r.crew[0] ?? 0]); return; }
+      // metal feet: the Mech walks on hot hobs; mousetraps and icicles still get it
+      const hot = this.tileHits(probe, null).some(t => { const k = this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)); return isHazardTile(k) && k !== TILE_HOT; });
+      if (hot || r.y > this.H + 40 || this.handHits(r)) { this.splat(this.players[r.crew[0] ?? 0]); return; }
     }
     for (const p of this.players) {
       if (p.inRobot >= 0) continue;
@@ -744,7 +803,7 @@ export class World {
       const reach = { x: probe.x, y: probe.y - 1, w: probe.w, h: probe.h + 1 }; // icicles hang above
       const onHot = this.tileHits(reach, null).some(t => isHazardTile(this.tileAt(Math.floor(t.x / T), Math.floor(t.y / T))));
       const onBurner = this.burners.some(b => b.state === 'hot' && overlap(probe, b));
-      if (onHot || onBurner || p.y > this.H + 40) { this.splat(p); return; }
+      if (onHot || onBurner || p.y > this.H + 40 || this.handHits(p)) { this.splat(p); return; }
     }
   }
 
@@ -768,6 +827,8 @@ export class World {
       pl.carry = -1;
     }
     for (const r of this.robots) { r.crew = []; r.x = r.ckX; r.y = r.ckY; r.vx = r.vy = 0; }
+    for (const h of this.hands) { h.state = 'idle'; h.t = -1.5; }
+    this.bubbles = [];
     const cp = this.checkpoint >= 0 ? this.checks[this.checkpoint] : null;
     if (cp) this.placeTeam(cp.tx, cp.ty); else this.placeTeam(this.level.spawn.x, this.level.spawn.y);
     this.phase = 'play';
@@ -808,6 +869,100 @@ export class World {
       this.phaseT = 0;
       this.events.push({ type: 'clear' });
     }
+  }
+
+  // ------------------------------------------------------------------ stove, sink, dinner service
+  private cycle(c: Cycler): void {
+    if (c.cold <= 0) { c.state = 'hot'; return; }
+    const cyc = c.cold + c.hot;
+    const t = (((this.levelT + c.offset) % cyc) + cyc) % cyc;
+    c.state = t >= c.cold ? 'hot' : t >= c.cold - 0.7 ? 'warn' : 'cold';
+  }
+
+  private updateStoveSink(): void {
+    for (const v of this.vents) this.cycle(v);
+    for (const j of this.jets) this.cycle(j);
+    for (const m of this.meltys) {
+      if (!m.gone) {
+        if (this.ridersOf(m).length) m.melt += STEP / PHYS.meltTime; else m.melt = Math.max(0, m.melt - STEP / 3);
+        if (m.melt >= 1) { m.gone = true; m.regrow = PHYS.regrow; this.events.push({ type: 'drip' }); }
+      } else {
+        m.regrow -= STEP;
+        const blocked = [...this.players.filter(p => p.inRobot < 0), ...this.crates, ...this.robots].some(b => overlap(m, b));
+        if (m.regrow <= 0 && !blocked) { m.gone = false; m.melt = 0; this.events.push({ type: 'reform' }); }
+      }
+    }
+    for (const w of this.waters) {
+      const target = w.on === undefined || this.switchOn(w.on) ? w.high : w.low;
+      if (Math.abs(target - w.level) > 0.5) w.level += Math.sign(target - w.level) * Math.min(70 * STEP, Math.abs(target - w.level));
+    }
+  }
+
+  /** The water a point is under, if any. */
+  waterAt(x: number, y: number): Water | null {
+    for (const w of this.waters) if (x >= w.x && x <= w.x + w.w && y > w.level) return w;
+    return null;
+  }
+
+  private updateBubbles(): void {
+    for (const s of this.bubblers) {
+      s.t += STEP;
+      if (s.t < s.every) continue;
+      const b: Bubble = { kind: 'bubble', idx: 0, x: s.x - 8, y: s.y, w: 56, h: 16, life: 0 };
+      if (![...this.players, ...this.crates, ...this.robots, ...this.bubbles].some(o => overlap(b, o))) { this.bubbles.push(b); s.t = 0; }
+    }
+    for (const b of this.bubbles) {
+      b.life += STEP;
+      const dy = -PHYS.bubbleSpeed * STEP;
+      const pop = b.life > PHYS.bubbleLife || this.tileHits({ x: b.x, y: b.y + dy, w: b.w, h: b.h }, null).length > 0 || b.y < 0;
+      if (pop) { b.life = -1; this.events.push({ type: 'pop' }); continue; }
+      this.moveKinematic(b, 0, dy);
+    }
+    this.bubbles = this.bubbles.filter(b => b.life >= 0);
+  }
+
+  private updateBelts(): void {
+    for (const b of this.belts) {
+      const dx = b.dir * b.speed * STEP;
+      for (const r of this.ridersOf(b)) this.moveX(r, dx, 1);
+      for (const it of this.items) {
+        if (it.delivered || it.carrier >= 0 || !it.grounded) continue;
+        if (Math.abs(it.y + PHYS.item - b.y) < 1 && it.x + PHYS.item > b.x && it.x < b.x + b.w) it.x += this.sweepX({ x: it.x, y: it.y, w: PHYS.item, h: PHYS.item }, dx, this.solidsFor(null, true));
+      }
+    }
+  }
+
+  private updateHands(): void {
+    for (const h of this.hands) {
+      h.t += STEP;
+      if (h.state === 'idle' && h.t >= h.period) {
+        // aim at the middle of the team
+        const xs = this.players.map(p => p.x + p.w / 2);
+        h.tx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        h.state = 'warn'; h.t = 0; this.events.push({ type: 'handWarn' });
+      } else if (h.state === 'warn' && h.t >= PHYS.hand.warn) { h.state = 'slam'; h.t = 0; this.events.push({ type: 'handSlam' }); }
+      else if (h.state === 'slam' && h.t >= PHYS.hand.slam) { h.state = 'lift'; h.t = 0; }
+      else if (h.state === 'lift' && h.t >= PHYS.hand.lift) { h.state = 'idle'; h.t = 0; }
+    }
+  }
+
+  /** Something solid above this box (a shelf, a counter) shelters it from the Chef's Hand. */
+  sheltered(b: Box): boolean {
+    const i0 = Math.floor((b.x + 4) / T), i1 = Math.floor((b.x + b.w - 4) / T), jTop = Math.floor((b.y - 1) / T);
+    for (let i = i0; i <= i1; i++) {
+      let covered = false;
+      for (let j = 0; j <= jTop; j++) if (this.tileAt(i, j)) { covered = true; break; }
+      if (!covered) return false;
+    }
+    return true;
+  }
+
+  private handHits(b: Box): boolean {
+    for (const h of this.hands) {
+      if (h.state !== 'slam' || h.t > 0.25) continue;
+      if (b.x + b.w > h.tx - PHYS.hand.w / 2 && b.x < h.tx + PHYS.hand.w / 2 && !this.sheltered(b)) return true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------------ pantry: rules, tickets, noodle, Pot Mech

@@ -11,13 +11,24 @@ type G = Phaser.GameObjects.Graphics;
 const WOOD = 0x9a6438, WOOD_D = 0x7b4c28, WOOD_L = 0xb57b4a;
 const MARBLE = 0xece6dc, MARBLE_D = 0xcfc6b8;
 
+/** Per-world look: wall paintings, block texture, and the countertop edge colours. */
+const THEMES: Record<string, { walls: [string, string]; tex: string; lip?: [number, number] }> = {
+  'Counter Top': { walls: ['bg-kitchen', 'bg-kitchen2'], tex: 'tex-cabinet' },
+  'The Fridge': { walls: ['bg-fridge', 'bg-fridge2'], tex: 'tex-fridge' },
+  'The Pantry': { walls: ['bg-pantry', 'bg-pantry2'], tex: 'tex-pantry' },
+  'Stove & Oven': { walls: ['bg-oven', 'bg-oven2'], tex: 'tex-stove', lip: [0xb8bec6, 0x5a5f66] },
+  'The Sink': { walls: ['bg-sink', 'bg-sink2'], tex: 'tex-sink', lip: [0xf4f9fc, 0x9fb8c8] },
+  'Dinner Service': { walls: ['bg-dining', 'bg-dining2'], tex: 'tex-dining', lip: [0xe8c27a, 0x8a5a2a] },
+};
+
 /** Backdrop + static tiles with the Gemini art (wall paintings, cabinet + marble textures, shelves). */
 export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, w: World): void {
   const g = scene.add.graphics().setDepth(0.2);
   layer.add(g);
+  const theme = THEMES[w.level.world] ?? THEMES['Counter Top'];
   const fridge = w.level.world === 'The Fridge', pantry = w.level.world === 'The Pantry';
-  const wallA = fridge ? 'bg-fridge' : pantry ? 'bg-pantry' : 'bg-kitchen', wallB = fridge ? 'bg-fridge2' : pantry ? 'bg-pantry2' : 'bg-kitchen2';
-  const solidTex = fridge && hasArt('tex-fridge') ? 'tex-fridge' : pantry && hasArt('tex-pantry') ? 'tex-pantry' : 'tex-cabinet';
+  const wallA = theme.walls[0], wallB = theme.walls[1];
+  const solidTex = hasArt(theme.tex) ? theme.tex : 'tex-cabinet';
   const art = hasArt(wallA) && hasArt(solidTex);
   if (!art) { drawStatic(g, w); return; }
   // wall: two paintings side by side, alternating (mirrored every other pair)
@@ -52,6 +63,7 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       if (above !== TILE_SOLID && above !== TILE_HOT) {
         if (fridge) { g.fillStyle(0xe8f4fb, 1).fillRect(x, y, T, 10); g.fillStyle(0x9fc8e0, 1).fillRect(x, y + 8, T, 3); }
         else if (pantry) { g.fillStyle(0xd9a46a, 1).fillRect(x, y, T, 8); g.fillStyle(0x6b3f1e, 1).fillRect(x, y + 7, T, 3); }
+        else if (theme.lip) { g.fillStyle(theme.lip[0], 1).fillRect(x, y, T, 8); g.fillStyle(theme.lip[1], 1).fillRect(x, y + 7, T, 3); }
         else if (hasArt('tex-marble')) layer.add(scene.add.image(x, y, 'tex-marble', 'c' + (i % 4)).setOrigin(0).setDisplaySize(T, 13).setDepth(0.15));
         else g.fillStyle(MARBLE, 1).fillRect(x, y, T, 12);
         g.fillStyle(0x8a7a66, 0.6).fillRect(x, y + 12, T, 2);
@@ -220,6 +232,7 @@ export function drawItem(g: G, kind: ItemKind, cx: number, cy: number, s = PHYS.
       g.fillStyle(0xffffff, 1).fillRect(cx - h * 0.6, cy - h, s * 0.6, h * 0.8);
       break;
     case 'berry': case 'butter': case 'yogurt': case 'honey': case 'cereal': case 'flour': case 'pasta': case 'melon':
+    case 'potato': case 'onion': case 'sausage': case 'pepper': case 'apple': case 'grapes': case 'carrot': case 'pear': case 'cake': case 'soup': case 'pizza': case 'fries':
       g.fillStyle(ITEMS[kind].color, 1).fillCircle(cx, cy, h);
       break;
     case 'lettuce':
@@ -241,7 +254,8 @@ export function placeItem(pool: SpritePool | null, g: G, kind: ItemKind, cx: num
 }
 
 /** Everything that moves or changes: gadgets, cubes, ingredients. Uses the Gemini art when present. */
-export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | null = null, slices: SlicePool | null = null): void {
+export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | null = null, slices: SlicePool | null = null, fg: G | null = null): void {
+  const front = fg ?? g;
   const art = (k: string) => !!pool && hasArt(k);
   const sliced = (k: string) => !!slices && hasArt(k);
   // the noodle tying neighbouring kaiju together (sags when slack)
@@ -396,6 +410,13 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   }
   // lifts (spatulas)
   for (const l of w.lifts) {
+    if (l.bal) {
+      const cx = l.x + l.w / 2;
+      g.lineStyle(3, 0x8a6a3a, 1).lineBetween(l.x + 6, l.y, cx, l.y - 70).lineBetween(l.x + l.w - 6, l.y, cx, l.y - 70).lineBetween(cx, l.y - 70, cx, 0);
+      if (sliced('ob-plate')) slices!.take('ob-plate', l.x - 8, l.y - 16, l.w + 16, 40, 40 / 142, 6);
+      else g.fillStyle(0xffffff, 1).fillEllipse(cx, l.y + 6, l.w + 10, 18);
+      continue;
+    }
     if (l.on !== undefined && l.ax === l.bx) {
       g.fillStyle(0x6b6b6b, 1).fillRect(l.x + l.w / 2 - 4, l.y + l.h, 8, Math.max(0, l.ay - l.y));
     }
@@ -433,6 +454,11 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   for (const l of w.levers) {
     const on = !!w.leverOn.get(l.id);
     const bx = l.x + T / 2, by = l.y + T;
+    if (w.level.world === 'The Sink' && art('ob-plug')) {
+      const img = fitInside(pool!.take('ob-plug', 6), 40, 54).setOrigin(0.5, 1).setPosition(bx, by + 2 - (on ? 0 : 8));
+      img.setAngle(on ? 0 : -12);
+      continue;
+    }
     if (art('ob-lever')) {
       const img = fitInside(pool!.take('ob-lever', 6), 46, 46).setOrigin(0.5, 1).setPosition(bx, by + 2);
       img.setFlipX(!on);
@@ -513,6 +539,82 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
         g.fillStyle(0xd9a24a, a).fillRect(b.x, b.y + drop, b.w, b.h);
       }
     }
+  }
+  // chocolate platforms: sag and drip as they melt; a faint outline while they set again
+  for (const m of w.meltys) {
+    if (m.gone) {
+      const k = 1 - Math.max(0, m.regrow) / 4;
+      g.lineStyle(2, 0x7a4a2a, 0.25 + 0.35 * k).strokeRoundedRect(m.x + 2, m.y + 2, m.w - 4, m.h - 4, 6);
+      continue;
+    }
+    const sag = 1 - m.melt * 0.3;
+    if (sliced('ob-choc')) slices!.take('ob-choc', m.x - 3, m.y + m.h * (1 - sag) - 3, m.w + 6, m.h * sag + 8, (m.h * sag + 8) / 272, 6);
+    else g.fillStyle(0x6b3a1e, 1).fillRoundedRect(m.x, m.y + m.h * (1 - sag), m.w, m.h * sag, 6);
+    if (m.melt > 0.05) for (let k = 0; k < m.w / 20; k++) {
+      const ph = (time * 1.5 + k * 0.37) % 1;
+      g.fillStyle(0x5a2e14, 0.9 * m.melt).fillEllipse(m.x + 10 + k * 20, m.y + m.h + ph * 26 * m.melt, 6, 10);
+    }
+  }
+  // steam vents
+  for (const v of w.vents) {
+    const floorY = v.y + v.h;
+    if (art('ob-vent')) fitInside(pool!.take('ob-vent', 4), v.w + 10, 30).setOrigin(0.5, 1).setPosition(v.x + v.w / 2, floorY + 8);
+    else g.fillStyle(0x5a5f66, 1).fillRect(v.x, floorY - 6, v.w, 6);
+    const n = v.state === 'hot' ? 10 : v.state === 'warn' ? 3 : 0;
+    for (let k = 0; k < n; k++) {
+      const ph = (time * (v.state === 'hot' ? 1.2 : 0.6) + k / n) % 1;
+      const yy = floorY - ph * (v.state === 'hot' ? v.h : 50);
+      g.fillStyle(0xffffff, 0.35 * (1 - ph)).fillCircle(v.x + v.w / 2 + Math.sin(time * 3 + k * 2) * v.w * 0.35, yy, 10 + ph * 18);
+    }
+  }
+  // tap jets
+  for (const j of w.jets) {
+    const src = j.dir > 0 ? j.x : j.x + j.w;
+    g.fillStyle(0xc8d4dc, 1).fillRoundedRect(src - 10, j.y + j.h / 2 - 12, 20, 24, 6);
+    if (j.state === 'cold') continue;
+    const n = j.state === 'hot' ? 9 : 3;
+    for (let k = 0; k < n; k++) {
+      const ph = (time * 1.6 + k / n) % 1;
+      const xx = j.dir > 0 ? j.x + ph * j.w : j.x + j.w - ph * j.w;
+      g.lineStyle(3, 0x7ac8ff, (j.state === 'hot' ? 0.7 : 0.3) * (1 - ph * 0.5)).lineBetween(xx, j.y + 8 + ((k * 37) % (j.h - 16)), xx - j.dir * 40, j.y + 8 + ((k * 37) % (j.h - 16)));
+    }
+  }
+  // soap bubbles you can ride
+  for (const b of w.bubbles) {
+    const a = b.life > 6 ? 0.5 + 0.5 * Math.sin(time * 30) : 1;
+    if (art('ob-bubble')) fitInside(pool!.take('ob-bubble', 7), b.w + 10, b.w + 10).setPosition(b.x + b.w / 2, b.y + b.w / 2 - 6).setAlpha(0.85 * a);
+    else g.lineStyle(3, 0xbfe6ff, a).strokeCircle(b.x + b.w / 2, b.y + b.w / 2 - 6, b.w / 2);
+  }
+  // conveyor belts
+  for (const b of w.belts) {
+    if (sliced('ob-belt')) slices!.take('ob-belt', b.x - 4, b.y - 4, b.w + 8, 34, 34 / 155, 6);
+    else g.fillStyle(0x2b2e33, 1).fillRoundedRect(b.x, b.y, b.w, 26, 10);
+    for (let xx = 0; xx < b.w; xx += 30) {
+      const ox = b.x + ((xx + time * b.speed * b.dir) % b.w + b.w) % b.w;
+      g.fillStyle(0xffd27a, 0.8).fillTriangle(ox, b.y + 6, ox, b.y + 16, ox + b.dir * 8, b.y + 11);
+    }
+  }
+  // water (in front of the kaiju, see-through)
+  for (const wt of w.waters) {
+    const top = wt.level;
+    front.fillStyle(0x4ab0e8, 0.32).fillRect(wt.x, top, wt.w, w.H - top);
+    front.lineStyle(3, 0xd8f4ff, 0.8);
+    for (let xx = wt.x; xx < wt.x + wt.w; xx += 12) front.lineBetween(xx, top + Math.sin(time * 3 + xx * 0.05) * 3, xx + 12, top + Math.sin(time * 3 + (xx + 12) * 0.05) * 3);
+  }
+  // the Chef's Hand: a shadow warns where it will slam
+  for (const h of w.hands) {
+    if (h.state === 'idle') continue;
+    const tx = h.tx;
+    let stop = w.H;
+    const col = Math.floor(tx / T);
+    for (let j = 0; j < w.level.h; j++) if (w.level.tiles[j * w.level.w + col]) { stop = j * T; break; }
+    const k = h.state === 'warn' ? h.t / 1.4 : 1;
+    front.fillStyle(0x000000, 0.15 + 0.3 * k).fillEllipse(tx, stop, 60 + 80 * k, 16);
+    if (h.state === 'warn') front.lineStyle(3, 0xff4a2a, 0.5 + 0.5 * Math.sin(time * 18)).strokeEllipse(tx, stop, 150, 22);
+    const handH = 260;
+    const yBottom = h.state === 'warn' ? stop - 330 + k * 60 : h.state === 'slam' ? stop + 4 : stop - (h.t / 0.6) * 340;
+    if (art('ob-hand')) fitInside(pool!.take('ob-hand', 13), 170, handH).setOrigin(0.5, 1).setPosition(tx, yBottom);
+    else front.fillStyle(0xffffff, 1).fillRoundedRect(tx - 60, yBottom - 120, 120, 120, 30);
   }
   // ingredients lying around (carried ones are drawn in front of the kaiju by the scene)
   for (const it of w.items) {

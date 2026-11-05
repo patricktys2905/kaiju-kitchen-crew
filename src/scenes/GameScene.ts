@@ -360,6 +360,13 @@ export class GameScene extends Phaser.Scene {
         case 'robotLand': sfx.robotLand(); this.cameras.main.shake(100, 0.004); break;
         case 'ticket': this.showTicket(e.rule); break;
         case 'ticketEnd': sfx.ticketEnd(); break;
+        case 'drip': sfx.drip(); break;
+        case 'reform': break;
+        case 'handWarn': sfx.handWarn(); this.popup('HIDE!', this.world.hands[0]?.tx ?? 640, 200, '#ff7a5a', 34); break;
+        case 'handSlam': sfx.handSlam(); this.cameras.main.shake(200, 0.01); break;
+        case 'pop': sfx.pop(); break;
+        case 'swim': sfx.swim(); break;
+        case 'splash': break;
       }
     }
   }
@@ -408,7 +415,7 @@ export class GameScene extends Phaser.Scene {
     this.front.clear();
     this.pool.begin();
     this.slices.begin();
-    drawDynamic(this.dyn, w, time, this.pool, this.slices);
+    drawDynamic(this.dyn, w, time, this.pool, this.slices, this.front);
 
     w.scales.forEach((s, i) => {
       const t = this.scaleTexts[i];

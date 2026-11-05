@@ -1,9 +1,11 @@
 // Compact snapshots for online play. The host's World is the only real simulation; guests build the
 // same level locally (so all the static parts already exist) and copy the moving parts in.
 import { PHYS } from '../sim/constants';
-import type { Phase, World } from '../sim/world';
+import type { HandState, Phase, World } from '../sim/world';
 
 const PHASES: Phase[] = ['play', 'splat', 'clear'];
+const ST = ['cold', 'warn', 'hot'] as const;
+const HS: HandState[] = ['idle', 'warn', 'slam', 'lift'];
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -25,6 +27,12 @@ export interface Snapshot {
   tf?: number[]; // tickets fired
   ru?: [string | null, number]; // rule, time left
   tl?: number; // noodle length
+  me?: number[][]; // melty melt gone regrow
+  ve?: number[]; // vent states
+  je?: number[]; // jet states
+  wa?: number[]; // water levels
+  bu?: number[][]; // bubbles x y life
+  ha?: number[][]; // hands state t tx
 }
 
 export function makeSnapshot(w: World): Snapshot {
@@ -38,6 +46,12 @@ export function makeSnapshot(w: World): Snapshot {
     tf: w.tickets.map(t => (t.fired ? 1 : 0)),
     ru: [w.rule, r2(w.ruleT)],
     tl: w.tetherLen,
+    me: w.meltys.map(m => [r2(m.melt), m.gone ? 1 : 0, r2(m.regrow)]),
+    ve: w.vents.map(v => ST.indexOf(v.state)),
+    je: w.jets.map(j => ST.indexOf(j.state)),
+    wa: w.waters.map(x => r1(x.level)),
+    bu: w.bubbles.map(b => [r1(b.x), r1(b.y), r2(b.life)]),
+    ha: w.hands.map(h => [HS.indexOf(h.state), r2(h.t), r1(h.tx)]),
     i: w.items.map(it => [r1(it.x), r1(it.y), it.carrier, it.delivered ? 1 : 0]),
     c: w.crates.map(c => [r1(c.x), r1(c.y), c.pushers]),
     l: w.lifts.map(l => [r1(l.x), r1(l.y)]),
@@ -84,6 +98,12 @@ export function applySnapshot(w: World, s: Snapshot): void {
   s.tf?.forEach((v, i) => { const t = w.tickets[i]; if (t) t.fired = v === 1; });
   if (s.ru) { w.rule = s.ru[0] as World['rule']; w.ruleT = s.ru[1]; }
   if (s.tl !== undefined) w.tetherLen = s.tl;
+  s.me?.forEach((a, i) => { const m = w.meltys[i]; if (m) { m.melt = a[0]; m.gone = a[1] === 1; m.regrow = a[2]; } });
+  s.ve?.forEach((v, i) => { const x = w.vents[i]; if (x) x.state = ST[v]; });
+  s.je?.forEach((v, i) => { const x = w.jets[i]; if (x) x.state = ST[v]; });
+  s.wa?.forEach((v, i) => { const x = w.waters[i]; if (x) x.level = v; });
+  if (s.bu) w.bubbles = s.bu.map((a, i) => ({ kind: 'bubble' as const, idx: i, x: a[0], y: a[1], w: 56, h: 16, life: a[2] }));
+  s.ha?.forEach((a, i) => { const h = w.hands[i]; if (h) { h.state = HS[a[0]]; h.t = a[1]; h.tx = a[2]; } });
   s.k?.forEach((v, i) => { const pk = w.pickups[i]; if (pk) pk.respawn = v; });
   s.j?.forEach((a, i) => { const j = w.jellies[i]; if (j) { j.frozen = a[0] === 1; j.wobble = a[1]; } });
   s.bl?.forEach((a, i) => { const b = w.blocks[i]; if (b) { b.broken = a[0] === 1; b.breakT = a[1]; } });

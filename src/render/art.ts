@@ -58,6 +58,8 @@ export const SLICES: Record<string, [number, number, number, number]> = {
   'ob-sign': [95, 95, 85, 85],
   'ob-plate': [150, 150, 0, 0],
   'ob-spatula': [70, 140, 0, 0],
+  'ob-choc': [70, 70, 0, 0],
+  'ob-belt': [90, 90, 0, 0],
 };
 
 /** A nine-slice of a prop, `w`×`h` world px, corners drawn at `scale` (so they never squash). */

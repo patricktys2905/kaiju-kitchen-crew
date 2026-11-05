@@ -13,7 +13,7 @@ await p.locator('button[data-act="local"]').click();
 await p.getByText('Start cooking').click();
 await wait(1000);
 // [level, team x tile, name, open door?]
-const spots = [[12, 3, 'noodle-pit'], [13, 9, 'swing-shaft'], [14, 5, 'mech-start'], [15, 6, 'mech-arm'], [16, 3, 'order-chaos'], [17, 42, 'panic-mech']];
+const spots = [[18, 9, 'melt'], [19, 5, 'steam'], [20, 17, 'grill'], [21, 2, 'mitts'], [23, 30, 'roast-mech']];
 for (const [lv, tx, name] of spots) {
   await p.evaluate(n => { const s = window.__game.scene.getScene('game'); s.scene.restart({ ...s.d, level: n }); }, lv);
   await wait(800);

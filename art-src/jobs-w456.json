@@ -1,0 +1,40 @@
+[
+  {
+    "name": "ob-choc",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need PROP sprites in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright colours, smooth cel shading with glossy highlights. Front/side view, one object per image, centred, filling about 85% of the frame, solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1. First: a thick rectangular block of milk CHOCOLATE (a chunky chocolate bar segment with squares), much wider than tall (about 2.5 times wider), glossy."
+  },
+  { "name": "ob-vent", "prompt": "Next prop, same style and framing, solid flat magenta (#FF00FF) background: a square metal STEAM VENT grate set in the floor, seen from the side and slightly above, wide and low (3 times wider than tall), dark slots, a little puff of white steam above it. Square 1:1." },
+  { "name": "it-potato", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one brown POTATO. Square 1:1." },
+  { "name": "it-onion", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one golden-brown ONION with a little sprout on top. Square 1:1." },
+  { "name": "it-sausage", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one plump grilled SAUSAGE with grill marks. Square 1:1." },
+  { "name": "it-pepper", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one shiny green BELL PEPPER. Square 1:1." },
+  { "name": "ob-bubble", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background: one big round translucent SOAP BUBBLE with rainbow shimmer and a white shine, no face. Square 1:1." },
+  { "name": "ob-plug", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background: a rubber SINK PLUG on a short metal ball chain, the chain going up to a little ring handle. Square 1:1." },
+  { "name": "ob-sponge", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a yellow kitchen SPONGE block with a green scrubby top layer, front view, wider than tall. Square 1:1." },
+  { "name": "it-apple", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one shiny red APPLE with a leaf. Square 1:1." },
+  { "name": "it-grapes", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a small bunch of purple GRAPES. Square 1:1." },
+  { "name": "it-carrot", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one orange CARROT with green leaves. Square 1:1." },
+  { "name": "it-pear", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one green-yellow PEAR. Square 1:1." },
+  { "name": "ob-hand", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background: a giant cartoon CHEF'S HAND in a white cooking glove, seen from the side, coming DOWN from the top, palm flat facing down ready to slam, with the white chef jacket cuff at the top of the image. Square 1:1." },
+  { "name": "ob-belt", "prompt": "Next prop, same style, side view, solid flat magenta (#FF00FF) background: a short segment of a kitchen CONVEYOR BELT, a dark rubber belt over grey rollers, very wide and low (4 times wider than tall). Square 1:1." },
+  { "name": "it-cake", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one slice of strawberry CAKE with cream. Square 1:1." },
+  { "name": "it-soup", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a small bowl of hot tomato SOUP with steam. Square 1:1." },
+  { "name": "it-pizza", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: one slice of PIZZA with pepperoni. Square 1:1." },
+  { "name": "it-fries", "prompt": "Next prop, same style, solid flat magenta (#FF00FF) background, no face: a red carton of golden FRENCH FRIES. Square 1:1." },
+  {
+    "name": "bg-oven",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer set in a giant kitchen. I need a level BACKGROUND in the same soft chunky cartoon game art style (clean outlines, soft shading). Straight-on view of a hot giant STOVE and OVEN area: dark enamel and steel wall with glowing orange oven window light, warm heat haze, hanging oven mitts, a spice rack, copper pans in the distance, warm orange-red lighting. Calm and slightly soft so characters stand out. Nothing in the foreground at the bottom, no characters, no text. Wide 16:9 landscape."
+  },
+  { "name": "bg-oven2", "prompt": "Another background, same style, continuing to the right: the inside of a giant OVEN, dark walls with glowing heating elements at the top, metal racks far behind, orange glow. Calm and soft. Nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-stove", "prompt": "Now a seamless TILEABLE texture, same style: dark charcoal STOVE enamel and brushed steel panel, subtle rivets, flat straight-on, evenly lit, tiles seamlessly in all directions. Square 1:1." },
+  { "name": "bg-sink", "prompt": "Another background, same style: straight-on view of the back wall of a giant kitchen SINK: white and pale teal tiles, a big chrome tap at the top, a window with soft daylight, a dish rack with plates, washing-up liquid bottle and sponges in the distance, soft blue-white light. Calm and soft. Nothing in the foreground at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "bg-sink2", "prompt": "Another background, same style and same sink, continuing to the right: pale teal tiles, a draining board with cups, bubbles floating, a rubber glove hanging. Calm and soft. Nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-sink", "prompt": "Now a seamless TILEABLE texture, same style: brushed stainless steel SINK metal, soft highlights, flat straight-on, evenly lit, tiles seamlessly. Square 1:1." },
+  { "name": "bg-dining", "prompt": "Another background, same style: a busy restaurant kitchen PASS / dinner service area: a stainless steel counter wall with order tickets clipped on a rail, heat lamps glowing, stacked plates, a service bell, warm golden light, a blurry dining room through a round door window. Calm and soft. Nothing in the foreground at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "bg-dining2", "prompt": "Another background, same style and place, continuing to the right: elegant dining room wall with warm wallpaper, framed food paintings, candle sconces and a big clock. Calm and soft. Nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-dining", "prompt": "Now a seamless TILEABLE texture, same style: dark polished wooden restaurant counter with a subtle red-and-white checked tablecloth pattern band at the top... no: just dark polished wood with gentle grain, flat straight-on, evenly lit, tiles seamlessly in all directions. Square 1:1." }
+]

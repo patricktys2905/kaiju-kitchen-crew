@@ -36,6 +36,14 @@ export const PHYS = {
   robot: { w: 104, h: 112, run: 150, jumpV: 870, weight: 6 }, // Pot Mech (jump ≈ 4 tiles)
   lowGrav: 0.42, // moon-gravity ticket
   speedy: 1.5,
+  meltTime: 1.6, // chocolate holds you this long, then drips away...
+  regrow: 4, // ...and sets again after this long
+  ventAcc: 3300, ventMax: 520, // steam vents lift you
+  jetAcc: 1700, jetMax: 380, // tap jets push you sideways
+  swimV: 400, // a swim stroke
+  bubbleSpeed: 75, bubbleLife: 7,
+  hand: { warn: 1.4, slam: 0.5, lift: 0.6, w: 120 }, // the Chef's Hand
+  balanceK: 45, // px a balance pan moves per unit of weight difference
 };
 
 export const TIMING = {
@@ -65,7 +73,8 @@ export const SPECIES = [
   { name: 'ONIGIRILLA', full: 'Onigirilla', food: 'rice-ball gorilla', color: 0xdfe6ee, css: '#eef3f8' },
 ];
 
-export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce' | 'milk' | 'berry' | 'butter' | 'yogurt' | 'honey' | 'cereal' | 'flour' | 'pasta' | 'melon';
+export type ItemKind = 'bread' | 'cheese' | 'tomato' | 'egg' | 'ham' | 'lettuce' | 'milk' | 'berry' | 'butter' | 'yogurt' | 'honey' | 'cereal' | 'flour' | 'pasta' | 'melon'
+  | 'potato' | 'onion' | 'sausage' | 'pepper' | 'apple' | 'grapes' | 'carrot' | 'pear' | 'cake' | 'soup' | 'pizza' | 'fries';
 /** Too heavy for a kaiju: only the Pot Mech's arm can carry these. */
 export const HEAVY: ItemKind[] = ['melon'];
 export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
@@ -84,4 +93,16 @@ export const ITEMS: Record<ItemKind, { name: string; color: number }> = {
   flour: { name: 'Flour', color: 0xf4ead8 },
   pasta: { name: 'Pasta', color: 0xf0d060 },
   melon: { name: 'Watermelon', color: 0x3a9a3a },
+  potato: { name: 'Potato', color: 0xb08050 },
+  onion: { name: 'Onion', color: 0xd8a050 },
+  sausage: { name: 'Sausage', color: 0xb0503a },
+  pepper: { name: 'Pepper', color: 0x4aa83a },
+  apple: { name: 'Apple', color: 0xe0302a },
+  grapes: { name: 'Grapes', color: 0x8a4ab8 },
+  carrot: { name: 'Carrot', color: 0xf08a2a },
+  pear: { name: 'Pear', color: 0xc8d84a },
+  cake: { name: 'Cake', color: 0xffc0d0 },
+  soup: { name: 'Soup', color: 0xe04a2a },
+  pizza: { name: 'Pizza', color: 0xf0b040 },
+  fries: { name: 'Fries', color: 0xf0c840 },
 };

@@ -87,5 +87,10 @@ export const sfx = {
   robotLand: () => { tone(70, 0.3, 'square', 0.12, -30); noise(0.2, 0.14, 600); },
   ticket: () => { [1200, 900, 1200, 1500].forEach((f, i) => tone(f, 0.06, 'square', 0.04, 0, i * 0.07)); noise(0.3, 0.05, 6000, 0.3); },
   ticketEnd: () => tone(700, 0.2, 'triangle', 0.05, -300),
+  drip: () => { tone(500, 0.2, 'sine', 0.05, -300); noise(0.15, 0.05, 900); },
+  handWarn: () => { tone(160, 0.5, 'sawtooth', 0.05, 80); tone(160, 0.5, 'sawtooth', 0.04, 80, 0.6); },
+  handSlam: () => { tone(55, 0.4, 'square', 0.18, -20); noise(0.35, 0.22, 700); },
+  pop: () => { tone(1400, 0.05, 'sine', 0.05, -800); noise(0.04, 0.05, 6000); },
+  swim: () => { noise(0.15, 0.06, 1500); tone(300, 0.12, 'sine', 0.03, 200); },
   clear: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.2, 'triangle', 0.07, 0, i * 0.11)); },
 };

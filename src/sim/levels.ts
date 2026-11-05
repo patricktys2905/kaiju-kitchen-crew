@@ -5,6 +5,7 @@
 import { LevelBuilder, type LevelDef } from './level';
 import { FRIDGE_LEVELS } from './levels-fridge';
 import { PANTRY_LEVELS } from './levels-pantry';
+import { STOVE_LEVELS } from './levels-stove';
 
 function shelfHelp(): LevelDef {
   const b = new LevelBuilder('Shelf Help', 'Counter Top', 'Get everyone up the counter and cook some toast!', 46, ['bread']).room();
@@ -129,4 +130,4 @@ function sandwichRush(): LevelDef {
 }
 
 export const COUNTER_LEVELS: LevelDef[] = [shelfHelp(), weighIn(), sugarCubes(), popUp(), hotHob(), sandwichRush()];
-export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS, ...PANTRY_LEVELS];
+export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS, ...PANTRY_LEVELS, ...STOVE_LEVELS];

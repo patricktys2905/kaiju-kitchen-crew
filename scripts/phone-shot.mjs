@@ -17,4 +17,8 @@ await p.locator(`button[data-level="${process.argv[2] ?? 0}"]`).tap();
 await p.getByText('Start cooking').tap();
 await wait(4500);
 await p.screenshot({ path: 'shots/phone-game.png' });
+await p.locator('#t-fs').tap();
+await wait(800);
+console.log('phone: full screen after tapping the button =', await p.evaluate(() => !!document.fullscreenElement), '| label:', await p.locator('#t-fs').textContent(), '| still in game =', await p.evaluate(() => window.__game.scene.isActive('game')));
+await p.screenshot({ path: 'shots/phone-game-fs.png' });
 await b.close(); server.kill();

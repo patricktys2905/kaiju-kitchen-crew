@@ -11,7 +11,7 @@ import { body, display, popIn, withShadow } from '../render/fonts';
 import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { NO_INPUT, World, type GameEvent, type PlayerInput } from '../sim/world';
-import { isTouchDevice, setTouchMode } from '../touch';
+import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
 import { fmtTime, loadProgress, saveClear } from '../ui';
 
 export interface GameData {
@@ -134,7 +134,7 @@ export class GameScene extends Phaser.Scene {
     this.recipeLabel = H(this.add.text(VIEW.w / 2, 8, 'ORDER', display(14, '#7a4a22', { strokeThickness: 0 })).setOrigin(0.5, 0).setDepth(102));
     this.banner = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setDepth(110), 6));
     this.sub = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setDepth(110), 3));
-    const hint = d.mode === 'guest' ? 'Esc leave' : d.mode === 'host' ? 'R retry · Esc menu' : 'R retry · Esc menu · Q / R-Shift swap kaiju';
+    const hint = d.mode === 'guest' ? 'F full screen · Esc leave' : d.mode === 'host' ? 'R retry · F full screen · Esc menu' : 'R retry · F full screen · Esc menu · Q / R-Shift swap kaiju';
     this.hint = H(withShadow(this.add.text(20, VIEW.h - 30, isTouchDevice ? '' : hint, body(15, '#fff6e6', 800)).setDepth(101), 2));
 
     this.wireNet();
@@ -229,6 +229,7 @@ export class GameScene extends Phaser.Scene {
 
     // menu keys
     if (consumeTap('Escape')) { this.toMenu(); return; }
+    if (consumeTap('KeyF')) toggleFullscreen();
     if (d.mode !== 'guest') {
       if (consumeTap('KeyR')) { this.restart(d.level); return; }
       if (w.phase === 'clear' && w.phaseT > 0.8 && (consumeTap('KeyN') || consumeTap('Enter') || startEdge)) {

@@ -41,6 +41,12 @@ const CSS = `
 #tc .row { position: absolute; left: 0; right: 0; bottom: calc(3vmin + env(safe-area-inset-bottom)); display: flex; justify-content: center; gap: 2vmin; }
 #tc .row .pill { pointer-events: auto; padding: 2vmin 3vmin; border-radius: 2vmin; background: #2a1408e6; color: #ffe9c7; border: 3px solid #ffcf8a; font-size: 3vmin; touch-action: none; }
 #tc .row .pill.go { background: #ff9a3c; color: #2a1408; }
+#tc .small.hide { display: none; }
+#fs-guide { position: fixed; inset: 0; z-index: 30; background: #140e0aee; color: #ffe9c7; display: none; align-items: center; justify-content: center; font-family: Nunito, Arial, sans-serif; font-weight: 800; }
+#fs-guide.on { display: flex; }
+#fs-guide .card { max-width: 80vw; background: #2a1408; border: 3px solid #ffcf8a; border-radius: 3vmin; padding: 3vmin 4vmin; font-size: 3.2vmin; line-height: 1.45; }
+#fs-guide h2 { font-family: 'Luckiest Guy', 'Arial Black', sans-serif; font-weight: 400; letter-spacing: 0.04em; margin: 0 0 1vmin; font-size: 5vmin; color: #ffb347; }
+#fs-guide .ok { display: inline-block; padding: 1.4vmin 4vmin; border-radius: 2vmin; background: #ff9a3c; color: #2a1408; font-family: 'Luckiest Guy', sans-serif; font-size: 3.4vmin; }
 #tc-rotate { position: fixed; inset: 0; z-index: 20; background: #140e0a; color: #ffe9c7; display: none; align-items: center; justify-content: center;
   flex-direction: column; font-family: 'Luckiest Guy', 'Arial Black', Impact, sans-serif; letter-spacing: 0.04em; font-size: 6vw; text-align: center; gap: 4vw; }
 @media (orientation: portrait) { body.touch #tc-rotate { display: flex; } }
@@ -75,6 +81,7 @@ export function initTouch(injectFn: (code: string) => void): void {
       <div class="btn" id="t-swap">SWAP</div>
       <div class="small" id="t-retry" style="left: calc(1.5vmin + env(safe-area-inset-left))">⟲ RETRY</div>
       <div class="small" id="t-menu" style="right: calc(1.5vmin + env(safe-area-inset-right))">✕ MENU</div>
+      <div class="small" id="t-fs" style="right: calc(17vmin + env(safe-area-inset-right))">⛶ FULL</div>
     </div>
     <div class="layer" id="tl-end">
       <div class="row"><div class="pill go" id="t-next">NEXT LEVEL ▶</div><div class="pill" id="t-replay">⟲ REPLAY</div><div class="pill" id="t-emenu">MENU</div></div>
@@ -108,6 +115,14 @@ export function initTouch(injectFn: (code: string) => void): void {
   for (const b of ['jump', 'grab', 'swap'] as const) hold($('t-' + b), () => { held[b] = true; latched[b] = true; }, () => { held[b] = false; });
   tapBtn($('t-retry'), 'KeyR');
   tapBtn($('t-menu'), 'Escape');
+  // full screen must be requested inside the tap itself
+  const fs = $('t-fs');
+  fs.addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); toggleFullscreen(); });
+  fs.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
+  const syncFs = () => { fs.textContent = isFullscreen() ? '⛶ EXIT FULL' : '⛶ FULL'; fs.classList.toggle('hide', isInstalledApp() && !isFullscreen()); };
+  document.addEventListener('fullscreenchange', syncFs);
+  document.addEventListener('webkitfullscreenchange', syncFs);
+  syncFs();
   tapBtn($('t-next'), 'KeyN');
   tapBtn($('t-replay'), 'KeyR');
   tapBtn($('t-emenu'), 'Escape');
@@ -133,11 +148,55 @@ export function touchMode(): TouchMode {
   return mode;
 }
 
-/** Best-effort full screen + landscape lock (not available on iPhone Safari). */
+type FsDoc = Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void; webkitFullscreenEnabled?: boolean };
+type FsEl = HTMLElement & { webkitRequestFullscreen?: () => void };
+
+/** Already running as an installed app (it is full screen by itself). */
+export function isInstalledApp(): boolean {
+  return matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches
+    || (navigator as unknown as { standalone?: boolean }).standalone === true;
+}
+export function isFullscreen(): boolean {
+  const d = document as FsDoc;
+  return !!(document.fullscreenElement || d.webkitFullscreenElement);
+}
+function canFullscreen(): boolean {
+  const d = document as FsDoc;
+  return !!(document.fullscreenEnabled || d.webkitFullscreenEnabled);
+}
+
+/** Best-effort full screen + landscape lock. Where pages can't go full screen (iPhone), shows how to install. */
 export function goFullscreen(): void {
-  const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+  if (!canFullscreen()) { showFsGuide(); return; }
+  const el = document.documentElement as FsEl;
   try {
     const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : (el.webkitRequestFullscreen?.(), undefined);
-    void p?.then(() => (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.('landscape').catch(() => {})).catch(() => {});
-  } catch { /* not supported */ }
+    void p?.then(() => (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.('landscape').catch(() => {})).catch(() => showFsGuide());
+  } catch { showFsGuide(); }
+}
+
+export function exitFullscreen(): void {
+  const d = document as FsDoc;
+  try { if (document.exitFullscreen) void document.exitFullscreen().catch(() => {}); else d.webkitExitFullscreen?.(); } catch { /* ignore */ }
+}
+
+/** Switch full screen on/off (works mid-game). */
+export function toggleFullscreen(): void {
+  if (isFullscreen()) exitFullscreen(); else goFullscreen();
+}
+
+function showFsGuide(): void {
+  let g = document.getElementById('fs-guide');
+  if (!g) {
+    g = document.createElement('div');
+    g.id = 'fs-guide';
+    g.innerHTML = `<div class="card"><h2>Full screen</h2>
+      <p>This browser can't make a web page full screen. Install the game instead, and it opens full screen like an app:</p>
+      <ol><li><b>iPhone / iPad (Safari):</b> tap Share <span style="font-size:1.2em">⎋</span> → <b>Add to Home Screen</b>.</li>
+      <li><b>Android (Chrome):</b> tap ⋮ → <b>Install app</b> / Add to Home screen.</li></ol>
+      <p>Then open Kaiju Kitchen Crew from your home screen.</p><div class="ok">OK</div></div>`;
+    document.body.appendChild(g);
+    g.addEventListener('pointerdown', e => { e.preventDefault(); g!.classList.remove('on'); });
+  }
+  g.classList.add('on');
 }

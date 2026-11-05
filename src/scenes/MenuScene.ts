@@ -4,7 +4,7 @@ import { clearTaps, consumeTap } from '../input';
 import { applyPendingUpdate } from '../pwa';
 import { SPECIES, VIEW } from '../sim/constants';
 import { fitCamera, hasArt } from '../render/art';
-import { goFullscreen, isTouchDevice, setTouchMode } from '../touch';
+import { isFullscreen, isInstalledApp, setTouchMode, toggleFullscreen } from '../touch';
 import { mountPanel } from '../ui';
 
 /** Draws a little kitchen with kaiju bouncing along the counter (behind the menus). */
@@ -55,7 +55,7 @@ export class MenuScene extends Phaser.Scene {
       <div class="row">
         <button class="go" data-act="online">🌐 Play online</button>
         <button data-act="local">🎮 Same screen</button>
-        ${isTouchDevice ? '<button data-act="fs">⛶ Full screen</button>' : ''}
+        ${isInstalledApp() && !isFullscreen() ? '' : `<button data-act="fs">⛶ ${isFullscreen() ? 'Exit full screen' : 'Full screen'}</button>`}
       </div>
       <h2>Controls</h2>
       <div class="keys">
@@ -64,6 +64,7 @@ export class MenuScene extends Phaser.Scene {
         <b>Grab / throw</b><span>S or E · ↓ or Enter · pad X/B · GRAB (near the pot = drop it in)</span>
         <b>Swap kaiju</b><span>Q · Right-Shift · pad Y · SWAP (same screen only)</span>
         <b>Retry / menu</b><span>R · Esc</span>
+        <b>Full screen</b><span>F · ⛶ button (any time, also mid-level)</span>
       </div>
       <div class="ver">v${__APP_VERSION__}</div>
     </div>`;
@@ -74,7 +75,7 @@ export class MenuScene extends Phaser.Scene {
     sfx.ui();
     if (a === 'online') this.scene.start('lobby');
     if (a === 'local') this.scene.start('local');
-    if (a === 'fs') goFullscreen();
+    if (a === 'fs') { toggleFullscreen(); setTimeout(() => this.scene.restart(), 400); }
   }
 
   update(): void {

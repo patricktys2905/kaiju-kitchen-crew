@@ -39,6 +39,12 @@ try {
   await page.screenshot({ path: 'shots/3-level1.png' });
   const moved = await page.evaluate(() => window.__game.scene.getScene('game').world.players.map(p => Math.round(p.x)));
   check(moved.some(x => x > 200), 'kaiju moved with the keyboard: ' + moved.join(','));
+  // full screen can be switched on and off mid-level
+  await page.keyboard.press('KeyF');
+  check(await until(() => page.evaluate(() => !!document.fullscreenElement), 4000), 'F switches to full screen during the game');
+  check(await page.evaluate(() => window.__game.scene.isActive('game')), 'still in the level after going full screen');
+  await page.keyboard.press('KeyF');
+  check(await until(() => page.evaluate(() => !document.fullscreenElement), 4000), 'F switches full screen off again');
   // every level loads and renders
   for (let lv = 1; lv < 6; lv++) {
     await page.evaluate(n => { const s = window.__game.scene.getScene('game'); s.scene.restart({ ...s.d, level: n }); }, lv);

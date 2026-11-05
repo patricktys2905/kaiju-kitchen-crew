@@ -31,7 +31,7 @@ export class LocalScene extends Phaser.Scene {
     const seats = saved.species.slice(0, saved.count).map((sp, i) => seatRow(sp, `Kaiju ${i + 1}`, true).replace(/data-pick="(-?1)"/g, `data-pick="$1" data-seat="${i}"`)).join('');
     root.innerHTML = `<div class="panel">
       <h1>Same screen</h1>
-      <p class="muted">Each keyboard side, gamepad or touch screen takes a kaiju as soon as you use it. Kaiju nobody is using just snooze. Press <b>SWAP</b> to jump into a snoozing one (great for practising alone).</p>
+      <p class="muted">Each keyboard side, gamepad or touch screen takes a kaiju as soon as you use it. Kaiju nobody is using just snooze. Press <b>SWAP</b> to jump into a snoozing one (great for practising alone). Walk into a snoozing friend and they shuffle along with you, so you can push a ×2 cube on your own.</p>
       <h2>How many kaiju?</h2>
       <div class="row">${Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, k) => k + MIN_PLAYERS).map(n => `<button data-count="${n}" class="${n === saved.count ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${seats}

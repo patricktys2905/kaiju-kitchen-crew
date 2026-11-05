@@ -10,6 +10,7 @@ import { buildStatic, drawDynamic, placeItem } from '../render/draw';
 import { body, display, popIn, withShadow } from '../render/fonts';
 import { ITEMS, PHYS, SPECIES, STEP, T, VIEW, WORLD_VIEW, ZOOM } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
+import { nudgeSleepers } from '../sim/solo';
 import { NO_INPUT, World, type GameEvent, type PlayerInput } from '../sim/world';
 import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
 import { fmtTime, loadProgress, saveClear } from '../ui';
@@ -26,6 +27,8 @@ export interface GameData {
 }
 
 let controllers: Controllers | null = null; // survives level changes in local play
+
+
 
 export class GameScene extends Phaser.Scene {
   private d!: GameData;
@@ -251,7 +254,7 @@ export class GameScene extends Phaser.Scene {
       extrapolate(w, dt);
     } else {
       let inputs: PlayerInput[];
-      if (d.mode === 'local') inputs = controllers!.update(devs);
+      if (d.mode === 'local') inputs = nudgeSleepers(w, controllers!.update(devs), i => controllers!.labelOf(i) === null);
       else {
         const me = mergedInput(devs);
         inputs = w.players.map((_, i) => {

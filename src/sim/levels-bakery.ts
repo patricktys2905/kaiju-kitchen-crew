@@ -15,7 +15,7 @@ function sprinkleClimb(): LevelDef {
       { t: 'pot', x: 29, y: 8 },
       { t: 'plate', x: 37, y: 8, w: 9 },
       { t: 'sign', x: 3, y: 9, text: 'Jump at the sprinkles, hold towards them and JUMP again to climb' },
-      { t: 'sign', x: 20, y: 4, text: 'Plain walls are too slippery. Only sprinkles stick!' },
+      { t: 'sign', x: 20, y: 5, text: 'Plain walls are too slippery. Only sprinkles stick!' },
       { t: 'spoon', x: 13, y: 5 }, // a leap off the top of the sprinkle wall
     );
   return b.start(2).build();
@@ -33,7 +33,7 @@ function risingDough(): LevelDef {
       { t: 'pot', x: 35, y: 8 },
       { t: 'plate', x: 43, y: 8, w: 10 },
       { t: 'sign', x: 3, y: 10, text: 'Stand on the dough and wait: it rises! (3 fit on it)' },
-      { t: 'sign', x: 22, y: 4, text: 'It sinks when nobody is on it. Leave a snoozer to keep it up!' },
+      { t: 'sign', x: 22, y: 5, text: 'It sinks when nobody is on it. Leave a snoozer to keep it up!' },
       { t: 'spoon', x: 17, y: 4 }, // high over the dough: risen dough + a friend's head
     );
   return b.start(2).build();
@@ -97,7 +97,7 @@ function proofingDrawer(): LevelDef {
       { t: 'pot', x: 50, y: 10 },
       { t: 'plate', x: 54, y: 10, w: 8 },
       { t: 'sign', x: 2, y: 10, text: 'Ride the dough up to the ledge' },
-      { t: 'sign', x: 22, y: 4, text: 'Wind the timer, then everyone through the door!' },
+      { t: 'sign', x: 22, y: 5, text: 'Wind the timer, then everyone through the door!' },
       { t: 'spoon', x: 13, y: 5 }, // over the first dough: risen dough + a friend's head
     );
   return b.start(2).build();

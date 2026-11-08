@@ -51,6 +51,7 @@ export class SpritePool {
 /** Where each prop's ends/corners are (texture px): those keep their shape, only the middle stretches. */
 export const SLICES: Record<string, [number, number, number, number]> = {
   'ob-shelf': [70, 70, 0, 0],
+  'ob-hob': [40, 40, 0, 0],
   'ob-glass-shelf': [60, 60, 0, 0],
   'ob-board': [0, 0, 150, 70],
   'ob-scale': [140, 140, 0, 0],

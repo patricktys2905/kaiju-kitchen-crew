@@ -49,6 +49,7 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
   tex(solidTex, 4, 0);
   if (hasArt('tex-marble')) tex('tex-marble', 4, 40);
   if (hasArt('tex-ice')) tex('tex-ice', 4, 0);
+  if (hasArt('tex-sprinkle')) tex('tex-sprinkle', 4, 0);
   const lv = w.level;
   // more cabinets below the level (seen on phones, where the camera sits lower)
   for (let j = lv.h; j < lv.h + 3; j++) for (let i = 0; i < lv.w; i++) layer.add(scene.add.image(i * T, j * T, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
@@ -88,7 +89,10 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
     } else if (t === TILE_ICICLE) {
       drawIcicles(g, x, y);
     } else if (t === TILE_STICKY) {
-      drawSticky(g, x, y, i, j);
+      if (hasArt('tex-sprinkle')) {
+        layer.add(scene.add.image(x, y, 'tex-sprinkle', 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
+        g.lineStyle(2, 0xc8507a, 0.5).strokeRect(x + 1, y + 1, T - 2, T - 2);
+      } else drawSticky(g, x, y, i, j);
     } else if (t === TILE_TRAP) {
       layer.add(scene.add.image(x, y, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
       if (hasArt('ob-trap')) layer.add(fitInside(scene.add.image(x + T / 2, y + 6, 'ob-trap'), T + 8, 26).setOrigin(0.5, 1).setDepth(0.4));
@@ -378,7 +382,19 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
     }
   }
   // burners
-  for (const b of w.burners) drawHob(g, b.x, b.y, b.w, b.state === 'hot' ? 2 : b.state === 'warn' ? 1 : 0, time);
+  for (const b of w.burners) {
+    const st = b.state === 'hot' ? 2 : b.state === 'warn' ? 1 : 0;
+    if (!art('ob-hob')) { drawHob(g, b.x, b.y, b.w, st, time); continue; }
+    g.fillStyle(0x1f1d1c, 1).fillRect(b.x, b.y + 10, b.w, T - 10);
+    if (sliced('ob-hob')) slices!.take('ob-hob', b.x - 2, b.y - 4, b.w + 4, 22, 22 / 85, 5);
+    else pool!.take('ob-hob', 5).setOrigin(0, 0).setDisplaySize(b.w + 4, 22).setPosition(b.x - 2, b.y - 4);
+    const pulse = 0.75 + 0.25 * Math.sin(time * 10);
+    if (st === 2) g.fillStyle(0xff6a2a, 0.28 * pulse).fillRect(b.x, b.y - 16, b.w, 16);
+    if (st > 0) {
+      g.lineStyle(4, st === 2 ? 0xff4a1c : 0xff9a3c, st === 2 ? pulse : 0.5 + 0.5 * Math.abs(Math.sin(time * 14)));
+      for (let cx = b.x + 20; cx < b.x + b.w; cx += 40) g.strokeEllipse(cx, b.y + 4, 30, 7);
+    }
+  }
   // doors (cutting boards that slide up into the wall)
   for (const d of w.doors) {
     if (d.h < 1) continue;
@@ -431,11 +447,14 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
       const top = l.y, bot = l.dough.base, h = Math.max(T * 0.6, bot - top);
       g.fillStyle(0x000000, 0.12).fillEllipse(l.x + l.w / 2, bot, l.w + 6, 10);
       g.fillStyle(0xd9b98a, 1).fillRoundedRect(l.x + 2, top + 6, l.w - 4, h - 6, 10);
-      g.fillStyle(0xf3dfb8, 1).fillRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
-      g.fillStyle(0xfff4dc, 0.9).fillRoundedRect(l.x + 6, top - 1, l.w * 0.45, 8, 4);
+      if (art('ob-dough')) pool!.take('ob-dough', 6).setOrigin(0.5, 0).setDisplaySize(l.w + 14, 34).setPosition(l.x + l.w / 2, top - 8);
+      else {
+        g.fillStyle(0xf3dfb8, 1).fillRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
+        g.fillStyle(0xfff4dc, 0.9).fillRoundedRect(l.x + 6, top - 1, l.w * 0.45, 8, 4);
+      }
       g.fillStyle(0xc9a271, 0.7);
       for (let k = 0; k < l.w / 26; k++) g.fillCircle(l.x + 14 + k * 26, top + 30 + ((k * 17) % 22), 2.5);
-      g.lineStyle(2, 0xa07a48, 0.6).strokeRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
+      if (!art('ob-dough')) g.lineStyle(2, 0xa07a48, 0.6).strokeRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
       continue;
     }
     if (l.bal) {
@@ -485,6 +504,13 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
     const frac = t.left > 0 ? t.left / t.secs : 0;
     const shake = t.left > 0 && t.left < 2 ? Math.sin(time * 60) * 1.5 : 0;
     g.fillStyle(0x000000, 0.15).fillEllipse(cx, t.y + T, 34, 6);
+    if (art('ob-timer')) {
+      const img = fitInside(pool!.take('ob-timer', 6), 42, 42).setOrigin(0.5, 1).setPosition(cx + shake, t.y + T + 2);
+      const dx = cx + shake, dy = img.y - img.displayHeight * 0.38, dr = img.displayWidth * 0.2;
+      if (frac > 0) g.fillStyle(0xff4a2a, 0.55).slice(dx, dy, dr, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2, false).fillPath();
+      if (t.left > 0) g.lineStyle(2, 0xffe27a, 0.4 + 0.4 * Math.sin(time * 8)).strokeCircle(dx, dy, dr + 3);
+      continue;
+    }
     g.fillStyle(0xf4f1ea, 1).fillCircle(cx + shake, cy, r);
     g.lineStyle(4, 0xe0533a, 1).strokeCircle(cx + shake, cy, r);
     if (frac > 0) g.fillStyle(0xff8a6a, 0.85).slice(cx + shake, cy, r - 3, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2, false).fillPath();
@@ -621,7 +647,11 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   // tap jets
   for (const j of w.jets) {
     const src = j.dir > 0 ? j.x : j.x + j.w;
-    g.fillStyle(0xc8d4dc, 1).fillRoundedRect(src - 10, j.y + j.h / 2 - 12, 20, 24, 6);
+    if (art('ob-tap')) {
+      // the tap's spout tip sits at the source of the jet
+      const img = fitInside(pool!.take('ob-tap', 5), 58, 64).setFlipX(j.dir < 0);
+      img.setOrigin(j.dir > 0 ? 0.95 : 0.05, 0.27).setPosition(src, j.y + j.h / 2 - 6);
+    } else g.fillStyle(0xc8d4dc, 1).fillRoundedRect(src - 10, j.y + j.h / 2 - 12, 20, 24, 6);
     if (j.state === 'cold') continue;
     const n = j.state === 'hot' ? 9 : 3;
     for (let k = 0; k < n; k++) {

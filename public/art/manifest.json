@@ -76,9 +76,11 @@
  "ob-cloche",
  "ob-cookie",
  "ob-cracker",
+ "ob-dough",
  "ob-flag",
  "ob-glass-shelf",
  "ob-hand",
+ "ob-hob",
  "ob-ice",
  "ob-jelly",
  "ob-lemon",
@@ -94,7 +96,9 @@
  "ob-spatula",
  "ob-sponge",
  "ob-sugar",
+ "ob-tap",
  "ob-ticket",
+ "ob-timer",
  "ob-toaster",
  "ob-trap",
  "ob-vent",
@@ -106,5 +110,6 @@
  "tex-marble",
  "tex-pantry",
  "tex-sink",
+ "tex-sprinkle",
  "tex-stove"
 ]

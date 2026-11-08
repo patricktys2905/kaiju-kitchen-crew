@@ -1,0 +1,30 @@
+// Screenshots for the polish pass: intro card, splat pose, happy dance, ending scene.
+import { spawn } from 'node:child_process';
+import { chromium } from 'playwright-core';
+const PORT = 5304, url = `http://localhost:${PORT}/?unlock`;
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
+const wait = ms => new Promise(r => setTimeout(r, ms));
+await wait(2500);
+const b = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const p = await (await b.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+const errs = []; p.on('pageerror', e => errs.push(String(e)));
+await p.goto(url);
+for (let i = 0; i < 60; i++) { if (await p.evaluate(() => window.__game?.scene.isActive('menu')).catch(() => false)) break; await wait(250); }
+await p.evaluate(() => localStorage.setItem('kkc-save', JSON.stringify({ best: {}, stars: {}, hats: { 0: 'chef', 9: 'party', 2: 'crown' } })));
+await p.locator('button[data-act="local"]').click();
+await p.locator('button[data-count="3"]').click();
+await p.locator('.worlds button').nth(6).click();
+await p.locator('button[data-act="start"]').click();
+await wait(5200);
+await p.screenshot({ path: 'shots/polish-card.png' });
+await p.evaluate(() => { const g = window.__game.scene.getScene('game'); g.world.phase = 'splat'; g.world.splatWho = 1; g.world.phaseT = 5; });
+await wait(400);
+await p.screenshot({ path: 'shots/polish-splat.png' });
+await p.evaluate(() => { const g = window.__game.scene.getScene('game'); g.world.phase = 'clear'; g.world.phaseT = 0; });
+await wait(700);
+await p.screenshot({ path: 'shots/polish-dance.png' });
+await p.evaluate(() => window.__game.scene.getScene('game').scene.start('ending', { species: [0, 9, 2, 7, 15, 5] }));
+await wait(1800);
+await p.screenshot({ path: 'shots/polish-ending.png' });
+console.log('errors:', errs);
+await b.close(); server.kill();

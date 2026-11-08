@@ -1,0 +1,42 @@
+[
+  {
+    "name": "ob-tap",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a PROP sprite in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Straight-on side view like a 2D platformer, one object only, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta on the object, no shadow, no face, no text, nothing else. Square 1:1. The object: a shiny chrome kitchen sink tap / faucet seen from the side, the spout curving and pointing to the RIGHT, mounted on the left."
+  },
+  {
+    "name": "ob-hob",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a PROP sprite in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Straight-on side view like a 2D platformer, one object only, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta on the object, no shadow, no face, no text, nothing else. Square 1:1. The object: a long black glass electric cooktop strip seen from the side and slightly above, with two round burner rings drawn on top, dark and simple, MUCH wider than tall (about 4 times wider than tall), filling the frame width."
+  },
+  {
+    "name": "ob-timer",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a PROP sprite in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Straight-on side view like a 2D platformer, one object only, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta on the object, no shadow, no face, no text, nothing else. Square 1:1. The object: a classic red tomato-shaped wind-up kitchen egg timer with a white dial and black tick marks and a little green stalk on top."
+  },
+  {
+    "name": "ob-dough",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a PROP sprite in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Straight-on side view like a 2D platformer, one object only, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta on the object, no shadow, no face, no text, nothing else. Square 1:1. The object: a big soft puffy ball of pale bread dough, smooth and slightly shiny, wider than tall, with a light dusting of flour on top."
+  },
+  {
+    "name": "tex-sprinkle",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. A seamless TILEABLE texture in the same soft chunky cartoon game art style as this reference: thick soft pink strawberry frosting covered in colourful rainbow sprinkles (little rod sprinkles in red, blue, yellow, green, white), flat straight-on view, evenly lit, not too busy, the pattern must tile seamlessly on all sides. Square 1:1."
+  }
+]

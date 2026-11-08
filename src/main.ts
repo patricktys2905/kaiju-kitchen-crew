@@ -1,3 +1,4 @@
+import { LEVELS } from './sim/levels';
 import * as Phaser from 'phaser';
 import { unlockAudio } from './audio';
 import { initInput, injectTap } from './input';
@@ -5,6 +6,7 @@ import { initPwa } from './pwa';
 import { RES } from './render/art';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
+import { EndingScene } from './scenes/EndingScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { LocalScene } from './scenes/LocalScene';
 import { MenuScene } from './scenes/MenuScene';
@@ -21,8 +23,9 @@ const game = new Phaser.Game({
   backgroundColor: '#140e0a',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW.w * RES, height: VIEW.h * RES },
   render: { antialias: true },
-  scene: [BootScene, MenuScene, LocalScene, LobbyScene, GameScene],
+  scene: [BootScene, MenuScene, LocalScene, LobbyScene, GameScene, EndingScene],
 });
 
 // Handy for debugging and the automated smoke tests.
 (window as unknown as { __game: Phaser.Game }).__game = game;
+(window as unknown as { __levelCount: number }).__levelCount = LEVELS.length; // for the smoke test

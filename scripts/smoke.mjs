@@ -46,7 +46,7 @@ try {
   await page.keyboard.press('KeyF');
   check(await until(() => page.evaluate(() => !document.fullscreenElement), 4000), 'F switches full screen off again');
   // every level loads and renders
-  const nLevels = await page.evaluate(() => document.querySelectorAll("x").length + 36);
+  const nLevels = await page.evaluate(() => window.__levelCount ?? 36);
   for (let lv = 1; lv < nLevels; lv++) {
     await page.evaluate(n => { const s = window.__game.scene.getScene('game'); s.scene.restart({ ...s.d, level: n }); }, lv);
     await wait(900);

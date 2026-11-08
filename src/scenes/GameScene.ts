@@ -16,6 +16,7 @@ import { NO_INPUT, robotRole, World, type GameEvent, type PlayerInput } from '..
 import type { TicketRule } from '../sim/level';
 import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
 import { fmtTime, starsHtml } from '../ui';
+import { introsFor, type Intro } from '../intros';
 import { bestTime, countStars, hatOf, levelOpen, recordClear, STAR_CLEAN, STAR_SPOON, WORLDS } from '../progress';
 
 export interface GameData {
@@ -52,6 +53,9 @@ export class GameScene extends Phaser.Scene {
   private front!: Phaser.GameObjects.Graphics;
   private worldLayer!: Phaser.GameObjects.Layer;
   private hudLayer!: Phaser.GameObjects.Layer;
+  private cards: Intro[] = [];
+  private cardT = 0;
+  private card: Phaser.GameObjects.Container | null = null;
   private pool!: SpritePool;
   private hudPool!: SpritePool;
   private slices!: SlicePool;
@@ -127,6 +131,9 @@ export class GameScene extends Phaser.Scene {
     this.time0 = 0;
 
     buildStatic(this, this.worldLayer, w);
+    this.cards = introsFor(level);
+    this.cardT = -3.4; // after the level banner
+    this.card = null;
     for (const s of w.signs) {
       const t = L(this.add.text(s.x, s.y, s.text, body(15, '#fff6e6', 800, { wordWrap: { width: 230 }, align: 'center' })).setOrigin(0, 0).setDepth(1));
       if (hasArt('ob-sign')) {
@@ -220,6 +227,38 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** "New!" cards for mechanics met for the first time: one after another, top left, ~6 s each. */
+  private updateCards(dt: number): void {
+    if (!this.cards.length && !this.card) return;
+    this.cardT += dt;
+    if (this.cardT < 0) return;
+    if (!this.card && this.cards.length) {
+      const c = this.cards.shift()!;
+      const W = 470, Hh = 110;
+      const bg = this.add.graphics();
+      bg.fillStyle(0x2a1408, 0.92).fillRoundedRect(0, 0, W, Hh, 18).lineStyle(4, 0xffcf8a, 1).strokeRoundedRect(0, 0, W, Hh, 18);
+      const parts: Phaser.GameObjects.GameObject[] = [bg];
+      if (this.textures.exists(c.art)) {
+        const img = this.add.image(58, Hh / 2, c.art);
+        const k = Math.min(86 / img.width, 86 / img.height);
+        parts.push(img.setScale(k));
+      }
+      parts.push(this.add.text(112, 12, `NEW! ${c.title}`, display(24, '#ffb347')));
+      parts.push(this.add.text(112, 44, c.text, body(17, '#fff6e6', 800, { wordWrap: { width: W - 126 } })));
+      this.card = this.add.container(-W - 20, 64, parts).setDepth(120);
+      this.hudLayer.add(this.card);
+      this.tweens.add({ targets: this.card, x: 18, duration: 380, ease: 'Back.easeOut' });
+      this.cardT = 0;
+      sfx.ui();
+    }
+    if (this.card && this.cardT > 6.2) {
+      const old = this.card;
+      this.card = null;
+      this.cardT = -0.3;
+      this.tweens.add({ targets: old, x: -520, duration: 300, ease: 'Quad.easeIn', onComplete: () => old.destroy() });
+    }
+  }
+
   /** Stars won this run, plus anything newly unlocked. */
   private rewardText(res: ReturnType<typeof recordClear>, splats: number, spoon: boolean): string {
     this.starsT.setText(starsHtml(res.starsNow).replace(/<i>★<\/i>/g, '☆'));
@@ -273,6 +312,7 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(0.1, deltaMs / 1000);
     this.time0 += dt;
     this.introT -= dt;
+    this.updateCards(dt);
     const d = this.d;
     const w = this.world;
     const devs = readDevices();
@@ -288,7 +328,8 @@ export class GameScene extends Phaser.Scene {
       if (consumeTap('KeyR')) { this.restart(d.level); return; }
       if (w.phase === 'clear' && w.phaseT > 0.8 && (consumeTap('KeyN') || consumeTap('Enter') || startEdge)) {
         const next = (d.level + 1) % LEVELS.length;
-        if (levelOpen(next)) this.restart(next); else this.toMenu();
+        if (d.level === LEVELS.length - 1 && d.mode === 'local') { this.leaving = true; this.scene.start('ending', { species: d.species, back: 'local' }); }
+        else if (levelOpen(next)) this.restart(next); else this.toMenu();
         return;
       }
     }
@@ -462,28 +503,10 @@ export class GameScene extends Phaser.Scene {
       const img = this.kaiju[i];
       const hgt = 64 * (p.h / PHYS.ph);
       const base = img.texture.key === '__WHITE' ? 1 : hgt / img.height;
-      const walking = p.grounded && Math.abs(p.vx) > 30;
-      const bob = walking ? Math.abs(Math.sin(time * 16 + i)) * 3 : 0;
-      const squash = p.landT > 0 ? 1 - p.landT * 1.4 : !p.grounded ? 1.06 : 1;
-      img.setScale(base * (2 - squash) * (p.landT > 0 ? 1 : 0.98), base * squash);
-      img.setPosition(p.x + p.w / 2, p.y + p.h + 4 - bob);
-      img.setFlipX(p.facing < 0);
-      if (img.texture.key === '__WHITE') img.setDisplaySize(p.w, p.h).setTint(SPECIES[p.species].color);
       const crew = p.inRobot >= 0;
       const splatted = w.phase === 'splat' && w.splatWho === i;
-      img.setAlpha(crew ? 0 : splatted ? 0.35 + 0.3 * Math.sin(time * 30) : 1);
-      img.setAngle(splatted ? 90 : 0);
-      const hat = this.hats[i];
-      if (hat) {
-        // sits on the head: scaled to the kaiju, tilted with its step, flops off sideways when splatted
-        const hw = Math.abs(img.displayWidth) * 0.5;
-        hat.setScale(hw / hat.width * (2 - squash) * 0.5 + hw / hat.width * 0.5);
-        const top = img.y - Math.abs(img.displayHeight) * 0.86;
-        hat.setPosition(img.x - p.facing * hw * 0.08, top + hat.displayHeight * 0.35);
-        hat.setFlipX(p.facing < 0).setAngle(splatted ? 70 : p.facing * (walking ? Math.sin(time * 16 + i) * 5 : -4));
-        hat.setAlpha(img.alpha);
-      }
-      // name tag
+      const party = w.phase === 'clear';
+      // name tag text (and whether this kaiju is snoozing)
       let label: string;
       let asleep = false;
       if (d.mode === 'local') {
@@ -493,6 +516,45 @@ export class GameScene extends Phaser.Scene {
       } else {
         const mine = d.mode === 'host' ? i === 0 : i === d.seat;
         label = mine ? `▼ ${p.name}` : p.name;
+      }
+      // squash & stretch, waddle, breathing, clinging, the splat pancake and the happy dance
+      const walking = p.grounded && Math.abs(p.vx) > 30;
+      let sx = 1, sy = 1, ang = 0, lift = 0, flip = p.facing < 0;
+      if (p.landT > 0) { const k = p.landT / 0.16; sy = 1 - 0.3 * k; sx = 1 + 0.24 * k; }
+      else if (!p.grounded) { const st = Math.min(1, Math.abs(p.vy) / 700); if (p.vy < 0) { sy = 1 + 0.16 * st; sx = 1 - 0.1 * st; } else { sy = 1 + 0.05 * st; sx = 1 - 0.04 * st; } }
+      if (walking) { const ph = time * 16 + i; lift = Math.abs(Math.sin(ph)) * 3; ang = Math.sin(ph) * 5; }
+      if (p.clingDir) { ang = -p.clingDir * 9; sx *= 0.92; flip = p.clingDir < 0; }
+      if (asleep && p.grounded && !walking) { const br = Math.sin(time * 2.2 + i * 1.7); sy *= 1 + 0.035 * br; sx *= 1 - 0.02 * br; }
+      if (party && !crew) {
+        const ph = time * 7 + i * 1.3, up = Math.sin(ph);
+        lift = Math.max(0, up) * 18;
+        ang = Math.sin(ph * 0.5) * 12;
+        flip = Math.sin(ph * 0.5) > 0;
+        if (up < 0.1) { sy *= 0.88; sx *= 1.1; }
+      }
+      if (splatted) {
+        sy = 0.3; sx = 1.7; ang = 0; lift = -2;
+        for (let k = 0; k < 4; k++) {
+          const a2 = time * 5 + (k * Math.PI) / 2;
+          this.front.fillStyle(k % 2 ? 0xffe27a : 0xffffff, 0.9).fillCircle(p.x + p.w / 2 + Math.cos(a2) * 26, p.y + p.h - 26 + Math.sin(a2) * 8, 4);
+        }
+      }
+      img.setScale(base * sx * 0.98, base * sy);
+      img.setPosition(p.x + p.w / 2, p.y + p.h + 4 - lift);
+      img.setFlipX(flip);
+      if (img.texture.key === '__WHITE') img.setDisplaySize(p.w * sx, p.h * sy).setTint(SPECIES[p.species].color);
+      img.setAlpha(crew ? 0 : splatted ? 0.75 + 0.25 * Math.sin(time * 30) : 1);
+      img.setAngle(ang);
+      const hat = this.hats[i];
+      if (hat) {
+        // sits on the head, tilts with the waddle, pops off when splatted
+        const hw = Math.abs(img.displayWidth) / sx * 0.5;
+        hat.setScale((hw / hat.width) * (0.5 + 0.5 * sx));
+        const top = img.y - Math.abs(img.displayHeight) * 0.86;
+        const rad = (ang * Math.PI) / 180;
+        hat.setPosition(img.x - (flip ? -1 : 1) * hw * 0.08 + Math.sin(rad) * Math.abs(img.displayHeight) * 0.8, top + hat.displayHeight * 0.35 - (splatted ? 30 : 0));
+        hat.setFlipX(flip).setAngle(splatted ? 70 + Math.sin(time * 8) * 15 : ang + (flip ? 4 : -4));
+        hat.setAlpha(img.alpha);
       }
       img.setTint(asleep ? 0xb8b8c8 : p.spicyT > 0 && Math.sin(time * 20) > 0 ? 0xff9a7a : 0xffffff);
       // spicy flames / soda bubbles

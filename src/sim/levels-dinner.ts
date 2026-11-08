@@ -104,15 +104,20 @@ function grandBanquet(): LevelDef {
   const b = new LevelBuilder('Grand Banquet', W6, 'The final feast: soup, cake, pizza, fries. Everything you have learned!', 110, ['soup', 'cake', 'pizza', 'fries']).room();
   b.solid(6, 12, 6, 1)
     .clear(12, 16, 10, 1).solid(15, 12, 4, 1)
-    .solid(26, 13, 3, 3).solid(29, 11, 3, 5).solid(28, 9, 4, 2)
+    // a staircase up to the cube's ledge that anyone can climb alone (rises of 2, 2, 2, 1 tiles). It was
+    // a 3-tile step then a 4-tile wall: impossible with 2 kaiju, and the last of any team got stranded
+    .solid(26, 14, 1, 2).solid(27, 12, 1, 4).solid(28, 10, 1, 6).solid(29, 9, 3, 7)
     .solid(40, 7, 10, 9)
+    // a high pot rack over the pans, the lift and the counter (above every jump): shelter from the Hand
+    // while the team is ferried up the lift one at a time (a solo player's snoozing kaiju can't dodge it)
+    .shelf(32, 4, 18)
     .clear(55, 16, 12, 1).traps(68, 16, 2)
     .solid(58, 12, 5, 1).solid(72, 12, 6, 1).solid(84, 12, 6, 1).solid(98, 12, 11, 1)
     .add(
       { t: 'hand', period: 4.5, offset: 3 },
       { t: 'belt', x: 12, y: 16, w: 10, dir: -1, speed: 120 },
       { t: 'item', kind: 'soup', x: 24, y: 15 },
-      { t: 'crate', x: 30, y: 8, w: 1, h: 1, need: 1, weight: 3 },
+      { t: 'crate', x: 31, y: 8, w: 1, h: 1, need: 1, weight: 3 }, // at the ledge's edge, over the left pan
       { t: 'balance', x1: 32, x2: 36, y: 11, w: 3, travel: 4 },
       { t: 'lift', on: 'L', x: 39, y: 15, w: 1, x2: 39, y2: 7 },
       { t: 'lever', id: 'L', x: 41, y: 6 },

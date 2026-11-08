@@ -14,6 +14,7 @@ function watchTheHand(): LevelDef {
       { t: 'pot', x: 52, y: 15 },
       { t: 'plate', x: 56, y: 15, w: 7 },
       { t: 'sign', x: 1, y: 7, text: 'See the shadow? Get under a shelf before the Hand slams!' },
+      { t: 'spoon', x: 40, y: 11 }, // out in the open between two shelves: a quick boost off a friend's head between slams
     );
   return b.start(2).build();
 }
@@ -34,6 +35,7 @@ function balancingAct(): LevelDef {
       { t: 'plate', x: 49, y: 6, w: 9 },
       { t: 'sign', x: 1, y: 5, text: 'Friend on the right pan, then push the heavy cube onto the left pan' },
       { t: 'sign', x: 19, y: 3, text: 'Up top? Pull the lever to bring the lift for the others' },
+      { t: 'spoon', x: 13, y: 5 }, // high over the gap between the pans: a leap off the risen right pan
     );
   return b.start(2, 10).build();
 }
@@ -52,6 +54,7 @@ function conveyorChaos(): LevelDef {
       { t: 'plate', x: 63, y: 15, w: 8 },
       { t: 'sign', x: 1, y: 9, text: 'Belts carry you. Walk against them!' },
       { t: 'sign', x: 22, y: 8, text: 'Mousetraps after this belt: jump them!' },
+      { t: 'spoon', x: 36, y: 11 }, // over the safe tile: the belt drops a snoozing friend there, hop on its head
     );
   return b.start(2).build();
 }
@@ -71,6 +74,7 @@ function rushHour(): LevelDef {
       { t: 'item', kind: 'soup', x: 58, y: 15 },
       { t: 'pot', x: 66, y: 15 },
       { t: 'plate', x: 72, y: 15, w: 10 },
+      { t: 'spoon', x: 32, y: 11 }, // over the first mousetraps: leap off a friend's head, land on the island
     );
   return b.start(2).build();
 }
@@ -96,6 +100,7 @@ function headChef(): LevelDef {
       { t: 'pot', x: 58, y: 15 },
       { t: 'plate', x: 64, y: 15, w: 10 },
       { t: 'sign', x: 7, y: 6, text: 'Even the Mech has to hide from the Hand' },
+      { t: 'spoon', x: 50, y: 9 }, // only a Mech jump goes this high: drive it through the door before it shuts
     );
   return b.start(1).build();
 }
@@ -130,6 +135,7 @@ function grandBanquet(): LevelDef {
       { t: 'item', kind: 'fries', x: 78, y: 15 },
       { t: 'pot', x: 94, y: 15 },
       { t: 'plate', x: 99, y: 15, w: 10 },
+      { t: 'spoon', x: 47, y: 1 }, // up on the pot rack: a friend's head from the counter, then jump
     );
   return b.start(2).build();
 }

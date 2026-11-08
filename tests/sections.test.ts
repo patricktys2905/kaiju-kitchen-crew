@@ -31,7 +31,7 @@ describe('Weigh-In', () => {
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
     it(`${n} kaiju fit on the scale, and the timer lets them all through the door`, () => {
       const w = makeWorld(lvl('Weigh-In'), n);
-      w.players.forEach((p, i) => place(p, 11 * T + 20 + (i % 5) * 38, 15 * T - (i >= 5 ? PHYS.ph + 1 : 0)));
+      w.players.forEach((p, i) => place(p, 10 * T + 20 + i * 38, 16 * T));
       frames(w, 20);
       expect(w.scales[0].active).toBe(true);
       until(w, (_, f) => w.players.map((p, i) => ({ mx: 1, jump: (f + i * 9) % 30 < 12 })), () => w.players.every(p => p.x > 26 * T), 600, 'all through');
@@ -117,6 +117,7 @@ describe('Hot Hob', () => {
     const [a, b] = w.players;
     const sh = w.lifts[0];
     place(a, 23 * T + 18, 16 * T); place(b, 22 * T, 16 * T);
+    // (the shuttle now stops a tile short of the edge)
     until(w, () => [], () => Math.abs(sh.x - sh.ax) < 0.5 && sh.wait > 0.3, 1200, 'shuttle at start');
     until(w, () => [{ mx: 1, jump: true }], () => a.grounded && Math.abs(bottom(a) - sh.y) < 1, 120, 'a on shuttle');
     until(w, () => [toward(a, sh.x + sh.w / 2)], () => Math.abs(sh.x - sh.bx) < 0.5, 900, 'ride');
@@ -125,7 +126,7 @@ describe('Hot Hob', () => {
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
     it(`${n} kaiju: scale → burner B → door within the timer`, () => {
       const w = makeWorld(lvl('Hot Hob'), n);
-      w.players.forEach((p, i) => place(p, 45 * T + 20 + (i % 5) * 38, 15 * T - (i >= 5 ? PHYS.ph + 1 : 0)));
+      w.players.forEach((p, i) => place(p, 44 * T + 20 + i * 38, 16 * T));
       frames(w, 20);
       expect(w.scales[0].active).toBe(true);
       const burner = w.burners[1];

@@ -1,5 +1,5 @@
 import { T } from '../src/sim/constants';
-import { LevelBuilder, type LevelDef } from '../src/sim/level';
+import { isHazardTile, LevelBuilder, type LevelDef } from '../src/sim/level';
 import { NO_INPUT, World, type Player, type PlayerInput } from '../src/sim/world';
 
 export type Script = (w: World, frame: number) => (Partial<PlayerInput> | undefined)[];
@@ -43,15 +43,18 @@ export function flatRoom(w = 40, edit?: (b: LevelBuilder) => void): LevelDef {
 export const tileTop = (row: number) => row * T;
 
 /** Walk towards x, jumping when there is a gap or a step just ahead (like a player would). */
-export function walker(w: World, p: Player, x: number): Partial<PlayerInput> {
+export function walker(w: World, p: Player, x: number, dropOK = false): Partial<PlayerInput> {
   const dir = Math.sign(x - cx(p));
   if (Math.abs(cx(p) - x) < 6) return {};
-  const ww = w as unknown as { solidsFor(b: unknown): { x: number; y: number; w: number; h: number }[]; tileHits(b: unknown, pb: number | null): unknown[] };
+  type B = { x: number; y: number; w: number; h: number };
+  const ww = w as unknown as { solidsFor(b: unknown): B[]; tileHits(b: unknown, pb: number | null): B[]; tileAt(c: number, r: number): number };
   const aheadX = dir > 0 ? p.x + p.w + 2 : p.x - 14;
   const floorProbe = { x: aheadX, y: p.y + p.h + 1, w: 12, h: 30 };
+  const deepProbe = { x: aheadX, y: p.y + p.h + 1, w: 12, h: 130 }; // a safe drop of up to ~3 tiles is walked off, not jumped
   const wallProbe = { x: aheadX, y: p.y, w: 12, h: p.h - 4 };
   // friends are not obstacles to jump over: just queue behind them
   const hit = (b: { x: number; y: number; w: number; h: number }) => ww.tileHits(b, null).length > 0 || ww.solidsFor(p).some(s => (s as { kind?: string }).kind !== 'player' && b.x < s.x + s.w && b.x + b.w > s.x && b.y < s.y + s.h && b.y + b.h > s.y);
-  const jump = (p.grounded && (!hit(floorProbe) || hit(wallProbe))) || (!p.grounded && p.vy < 0); // hold jump while rising
+  const safeDeep = () => { const ts = ww.tileHits(deepProbe, null); return dropOK && ts.length > 0 && ts.every(t => !isHazardTile(ww.tileAt(Math.floor(t.x / T), Math.floor(t.y / T)))); };
+  const jump = (p.grounded && ((!hit(floorProbe) && !safeDeep()) || hit(wallProbe))) || (!p.grounded && p.vy < 0); // hold jump while rising
   return { mx: dir, jump };
 }

@@ -30,9 +30,10 @@ function shelfHelp(): LevelDef {
 function weighIn(): LevelDef {
   const b = new LevelBuilder('Weigh-In', 'Counter Top', 'The kitchen scale only starts its timer when EVERYONE is on it.', 56, ['cheese', 'bread']).room();
   b.shelf(17, 13, 3).shelf(20, 11, 3)
+    .clear(10, 16, 6, 1) // the scale sits flush in the floor
     .solid(25, 0, 1, 10)
     .add(
-      { t: 'scale', id: 'a', x: 11, y: 15, w: 5, need: 'all', hold: 5 },
+      { t: 'scale', id: 'a', x: 10, y: 16, w: 6, need: 'all', hold: 5 },
       { t: 'door', on: 'a', x: 25, y: 10, h: 6 },
       { t: 'item', kind: 'bread', x: 21, y: 10 },
       { t: 'item', kind: 'cheese', x: 31, y: 15 },
@@ -48,13 +49,14 @@ function weighIn(): LevelDef {
 function sugarCubes(): LevelDef {
   const b = new LevelBuilder('Sugar Cubes', 'Counter Top', 'Sugar cubes can be pushed. Big ones need a team.', 60, ['tomato']).room();
   b.shelf(13, 12, 4)
-    .clear(30, 16, 3, 2) // scale pit, 1 tile deep: a cube pushed over it drops in and stays
+    .clear(30, 16, 2, 2) // scale pit, 1 tile deep: a cube pushed over it drops in and stays
+    .solid(32, 15, 1, 1) // lip: the cube stops right over the pit
     .solid(37, 0, 1, 9)
     .add(
       { t: 'crate', x: 8, y: 15, w: 1, h: 1, need: 1, weight: 1 },
       { t: 'item', kind: 'tomato', x: 15, y: 11 },
       { t: 'crate', x: 22, y: 14, w: 2, h: 2, need: { upTo: 2 }, weight: 3 },
-      { t: 'scale', id: 'b', x: 30, y: 17, w: 3, need: 3 },
+      { t: 'scale', id: 'b', x: 30, y: 17, w: 2, need: 3 },
       { t: 'door', on: 'b', x: 37, y: 9, h: 7 },
       { t: 'pot', x: 44, y: 15 },
       { t: 'plate', x: 50, y: 15, w: 8 },
@@ -88,15 +90,16 @@ function hotHob(): LevelDef {
   b.clear(11, 16, 7, 1) // burner A sits in the floor
     .hot(24, 16, 12, 1) // always-hot pit
     .clear(51, 16, 4, 1) // burner B
+    .clear(44, 16, 6, 1) // the scale sits flush in the floor
     .solid(57, 0, 1, 9)
     .add(
       { t: 'burner', x: 11, y: 16, w: 7, cold: 2.8, hot: 1.4 },
       { t: 'check', x: 20, y: 15 },
-      { t: 'lift', x: 24, y: 15, w: 3, x2: 33, y2: 15, speed: 110 },
+      { t: 'lift', x: 25, y: 15, w: 3, x2: 32, y2: 15, speed: 110 }, // stops a tile short of each edge: hop on
       { t: 'check', x: 38, y: 15 },
       { t: 'item', kind: 'ham', x: 41, y: 15 },
-      { t: 'scale', id: 'b', x: 45, y: 15, w: 5, need: 'all', hold: 6 },
-      { t: 'burner', x: 51, y: 16, w: 4, cold: 2.2, hot: 1.4, offset: 1 },
+      { t: 'scale', id: 'b', x: 44, y: 16, w: 6, need: 'all', hold: 6 },
+      { t: 'burner', x: 51, y: 16, w: 4, cold: 3, hot: 1.4, offset: 1 }, // cold long enough for one player to push a whole sleepy line across
       { t: 'door', on: 'b', x: 57, y: 9, h: 7 },
       { t: 'item', kind: 'cheese', x: 61, y: 15 },
       { t: 'pot', x: 64, y: 15 },
@@ -110,7 +113,8 @@ function hotHob(): LevelDef {
 function sandwichRush(): LevelDef {
   const b = new LevelBuilder('Sandwich Rush', 'Counter Top', 'Final order: bread, ham, cheese, bread. Use everything you have learned!', 84, ['bread', 'ham', 'cheese', 'bread']).room();
   b.solid(13, 13, 18, 3)
-    .clear(42, 16, 3, 2)
+    .clear(42, 16, 2, 2)
+    .solid(44, 15, 1, 1) // lip: the cube stops right over the pit
     .solid(49, 0, 1, 9)
     .shelf(54, 13, 3)
     .add(
@@ -120,7 +124,7 @@ function sandwichRush(): LevelDef {
       { t: 'item', kind: 'ham', x: 22, y: 12 },
       { t: 'check', x: 32, y: 15 },
       { t: 'crate', x: 34, y: 14, w: 2, h: 2, need: { upTo: 2 }, weight: 3 },
-      { t: 'scale', id: 'b', x: 42, y: 17, w: 3, need: 3 },
+      { t: 'scale', id: 'b', x: 42, y: 17, w: 2, need: 3 },
       { t: 'door', on: 'b', x: 49, y: 9, h: 7 },
       { t: 'check', x: 51, y: 15 },
       { t: 'item', kind: 'cheese', x: 55, y: 12 },

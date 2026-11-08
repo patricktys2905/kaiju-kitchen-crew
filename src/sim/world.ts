@@ -521,7 +521,14 @@ export class World {
       if (c.vx) this.moveX(c, c.vx * STEP);
       const want = c.vy * STEP;
       const d = this.moveY(c, want);
-      if (Math.abs(d - want) > 0.001) c.vy = 0;
+      if (Math.abs(d - want) > 0.001) {
+        if (c.vy > 300 && !c.vx) {
+          // a cube that dropped into place settles onto the tile grid
+          const snap = Math.round(c.x / T) * T - c.x;
+          if (snap && Math.abs(snap) < T / 2 + 1) this.moveX(c, snap);
+        }
+        c.vy = 0;
+      }
       if (c.y > this.H + 200) { c.x = c.homeX; c.y = c.homeY; c.vy = 0; }
     }
   }
@@ -667,6 +674,7 @@ export class World {
     if (p.carry >= 0) {
       const it = this.items[p.carry];
       const pot = this.pots.find(k => overlap(reach, { x: k.x - 8, y: k.y - 30, w: k.w + 16, h: k.h + 30 }));
+      if (!pot && this.pullLever(p, reach)) return; // hands full at a lever: pull it, keep holding
       p.carry = -1;
       it.carrier = -1;
       if (pot) {
@@ -701,15 +709,20 @@ export class World {
     for (const r of this.robots) {
       if (overlap({ x: reach.x - 16, y: reach.y - 16, w: reach.w + 32, h: reach.h + 32 }, r)) { this.board(p, r); return; }
     }
+    this.pullLever(p, reach);
+  }
+
+  private pullLever(p: Player, reach: Box): boolean {
     for (const l of this.levers) {
       if (overlap(reach, { x: l.x + 4, y: l.y, w: T - 8, h: T })) {
         this.leverOn.set(l.id, !this.leverOn.get(l.id));
         for (const o of this.levers) if (o.id === l.id) o.flipT = 0.25;
         this.pulses.add(l.id);
         this.events.push({ type: 'lever', p: p.idx });
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   private pick(p: Player, it: Item): void {

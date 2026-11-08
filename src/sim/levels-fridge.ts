@@ -23,6 +23,7 @@ function cookieMonster(): LevelDef {
       { t: 'sign', x: 7, y: 6, text: 'Big kaiju smash crackers: just walk into them' },
       { t: 'sign', x: 23, y: 8, text: 'Stand on a BIG friend to reach the milk' },
       { t: 'sign', x: 14, y: 9, text: 'Too big for the mouse hole? Lemon drops shrink you' },
+      { t: 'spoon', x: 16, y: 8 }, // back over the lemon drop: a leap LEFT off the shelf block's top
     );
   return b.start(2).build();
 }
@@ -43,6 +44,7 @@ function heavySnack(): LevelDef {
       { t: 'plate', x: 41, y: 15, w: 8 },
       { t: 'sign', x: 2, y: 10, text: 'This cube needs ×3 pushing. A BIG kaiju counts as 2' },
       { t: 'sign', x: 16, y: 7, text: 'Strawberry up high? Use a BIG friend as a step' },
+      { t: 'spoon', x: 10, y: 10 }, // over the heavy cube: hop on top before you push it away
     );
   return b.start(2).build();
 }
@@ -60,6 +62,7 @@ function slipperySlope(): LevelDef {
       { t: 'plate', x: 51, y: 15, w: 8 },
       { t: 'sign', x: 6, y: 11, text: 'Ice! You slide, so jump the gap at the end' },
       { t: 'sign', x: 24, y: 9, text: 'Jelly: BOING! Steer onto the shelf' },
+      { t: 'spoon', x: 28, y: 7 }, // high over the jelly: BOING with a friend riding on your head
     );
   return b.start(2).build();
 }
@@ -82,6 +85,7 @@ function deepFreeze(): LevelDef {
       { t: 'plate', x: 51, y: 15, w: 8 },
       { t: 'sign', x: 1, y: 11, text: 'Freezer ON = jelly turns to ice. Bouncing into icicles = SPLAT' },
       { t: 'sign', x: 19, y: 9, text: 'Everyone across? Freezer OFF, then BOING up' },
+      { t: 'spoon', x: 22, y: 8 }, // up past the sign: BOING off the jelly and steer left, not right
     );
   return b.start(2).build();
 }
@@ -103,6 +107,7 @@ function hotStuff(): LevelDef {
       { t: 'plate', x: 41, y: 15, w: 8 },
       { t: 'sign', x: 2, y: 10, text: 'Eat the chili, then touch the ice wall' },
       { t: 'sign', x: 11, y: 9, text: 'Soda: your next jump is HUGE (friends on your head come too)' },
+      { t: 'spoon', x: 5, y: 8 }, // high over the first chili: a soda jump off a friend's head
     );
   return b.start(2).build();
 }
@@ -124,6 +129,7 @@ function fridgeRaid(): LevelDef {
       { t: 'jelly', x: 31, y: 15, w: 2, h: 1 },
       { t: 'item', kind: 'butter', x: 38, y: 9 },
       { t: 'pickup', kind: 'lemon', x: 46, y: 13 },
+      { t: 'spoon', x: 40, y: 5 }, // high over the butter block: a friend's head up there
       { t: 'check', x: 59, y: 15 },
       { t: 'pickup', kind: 'chili', x: 61, y: 14 },
       { t: 'block', mat: 'ice', x: 65, y: 8, w: 1, h: 8 },

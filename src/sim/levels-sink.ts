@@ -14,6 +14,7 @@ function bathTime(): LevelDef {
       { t: 'lever', id: 'p', x: 5, y: 9 },
       { t: 'water', x: 10, w: 21, low: 15, high: 7, on: 'p' },
       { t: 'item', kind: 'apple', x: 20, y: 15 },
+      { t: 'spoon', x: 27, y: 10 }, // down at the far end of the empty sink: wait there while it fills and float up
       { t: 'pot', x: 40, y: 5 },
       { t: 'plate', x: 46, y: 5, w: 8 },
       { t: 'sign', x: 1, y: 6, text: 'Pull the plug lever: the sink fills and you float up!' },
@@ -28,6 +29,7 @@ function bubbleBath(): LevelDef {
     .solid(28, 6, 27, 10)
     .add(
       { t: 'bubbler', x: 8, y: 15, every: 2.2 },
+      { t: 'spoon', x: 8, y: 1 }, // way up: ride the first bubble all the way to the top, then jump
       { t: 'item', kind: 'grapes', x: 13, y: 5 },
       { t: 'bubbler', x: 26, y: 15, every: 2.2 },
       { t: 'item', kind: 'pear', x: 33, y: 5 },
@@ -49,6 +51,7 @@ function tapDance(): LevelDef {
       { t: 'item', kind: 'carrot', x: 38, y: 15 },
       { t: 'water', x: 44, w: 9, low: 12, high: 12 },
       { t: 'item', kind: 'apple', x: 48, y: 15 },
+      { t: 'spoon', x: 45, y: 9 }, // over the pool: jump up out of the water
       { t: 'pot', x: 58, y: 15 },
       { t: 'plate', x: 62, y: 15, w: 8 },
       { t: 'sign', x: 2, y: 9, text: 'Jump the gap when the tap is OFF' },
@@ -70,6 +73,7 @@ function drainPlan(): LevelDef {
       { t: 'water', x: 23, w: 18, low: 16, high: 8, on: 'b', inv: true },
       { t: 'lever', id: 'b', x: 32, y: 7 },
       { t: 'item', kind: 'pear', x: 33, y: 15 },
+      { t: 'spoon', x: 38, y: 11 }, // deep in sink B: float there while a friend pulls the plug, and sink down with the water
       { t: 'pot', x: 50, y: 15 },
       { t: 'plate', x: 55, y: 15, w: 8 },
       { t: 'sign', x: 8, y: 9, text: 'Fill this sink to float up to the grapes' },
@@ -87,6 +91,7 @@ function sudsExpress(): LevelDef {
       { t: 'jet', x: 10, y: 11, w: 8, h: 5, dir: -1, cold: 1.5, hot: 1.8 },
       { t: 'bubbler', x: 21, y: 15, every: 2 },
       { t: 'item', kind: 'apple', x: 28, y: 6 },
+      { t: 'spoon', x: 30, y: 2 }, // high over the big block: a friend's head up there
       { t: 'ticket', x: 35, rule: 'lowgrav' },
       { t: 'water', x: 40, w: 10, low: 10, high: 10 },
       { t: 'item', kind: 'carrot', x: 45, y: 15 },
@@ -110,6 +115,7 @@ function washingUp(): LevelDef {
       { t: 'water', x: 9, w: 16, low: 15, high: 6, on: 'p' },
       { t: 'item', kind: 'grapes', x: 16, y: 3 },
       { t: 'bubbler', x: 35, y: 15, every: 2.2 },
+      { t: 'spoon', x: 35, y: 1 }, // high over the gap: ride a bubble all the way up, then jump
       { t: 'item', kind: 'pear', x: 41, y: 5 },
       { t: 'jet', x: 47, y: 9, w: 12, h: 7, dir: 1 },
       { t: 'check', x: 59, y: 15 },

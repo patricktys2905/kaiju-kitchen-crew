@@ -340,3 +340,19 @@ describe('Pot Mech crew jobs', () => {
     expect(r.crew).toEqual([0]);
   });
 });
+
+describe('Pot Mech: hopping out keeps what the arm holds', () => {
+  it('tap GRAB = arm picks up; hold GRAB = hop out, and the Mech is still holding it', async () => {
+    const { Play } = await import('./play');
+    const { flatRoom } = await import('./helpers');
+    const g = new Play(flatRoom(30, b => b.add({ t: 'robot', x: 8, y: 13 }, { t: 'item', kind: 'melon', x: 13, y: 15 })), 2);
+    const [A] = g.order();
+    g.board(A);
+    g.mechTo(A, 11.2);
+    g.mechArm(A);
+    const r = g.w.robots[0];
+    expect(r.carry).toBeGreaterThanOrEqual(0);
+    g.unboard(A);
+    expect(r.carry).toBeGreaterThanOrEqual(0);
+  });
+});

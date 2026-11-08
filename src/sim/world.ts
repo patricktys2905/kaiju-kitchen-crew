@@ -1174,7 +1174,8 @@ export class World {
       r.crew.forEach((pi, k) => {
         const p = this.players[pi];
         const inp = inputs[pi] ?? NO_INPUT;
-        const je = inp.jump && !p.jumpPrev, ge = inp.grab && !p.grabPrev;
+        // the arm works on a short TAP (on release), so holding GRAB to hop out never throws what the Mech carries
+        const je = inp.jump && !p.jumpPrev, ge = !inp.grab && p.grabPrev && p.grabHeldT < 0.45;
         p.jumpPrev = inp.jump; p.grabPrev = inp.grab;
         const role = r.roles[k];
         if (role === 'all' || role === 'legs') mx = Math.max(-1, Math.min(1, inp.mx)) * (this.rule === 'reverse' ? -1 : 1);

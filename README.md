@@ -49,14 +49,27 @@ drains and carry you up, tap jets push you sideways. 25. **Bath Time** 26. **Bub
 The Chef's Hand slams down where the team is (hide under a shelf when its shadow appears), balance pans,
 conveyor belts, and everything mixed together. 31. **Watch the Hand** 32. **Balancing Act** 33. **Conveyor Chaos** 34. **Rush Hour** 35. **Head Chef** 36. **Grand Banquet**
 
-Extras: kaiju picker grid, background music per world (M / ♪ to mute), full screen any time (F / ⛶).
+## World 7: The Bakery
+Sticky **sprinkle walls** (cling and wall-jump up), **proofing dough** that rises while someone stands on it
+(leave a snoozer on it to keep it up) and **oven timers** (GRAB to wind; their doors stay open until they ring).
+37. **Sprinkle Climb** 38. **Rising Dough** 39. **Oven Timer** 40. **Sprinkle Shaft** 41. **Proofing Drawer** 42. **Wedding Cake**
+
+## Stars, worlds and hats
+Every level has 3 stars: ★ clear it, ★ clear it with no splats, ★ find its hidden **golden spoon**
+(touch it, then finish). The level picker is a world map: a world opens once 4 levels of the previous one
+are cleared (add `?unlock` to the address to open everything). Stars unlock **10 hats**; each kaiju
+wears its own, online too. Beat the last level for the ending celebration.
+
+Extras: kaiju picker grid, "NEW!" cards the first time you meet a mechanic, background music per world
+(M / ♪ to mute), full screen any time (F / ⛶).
 
 ## Develop
 ```
 npm install
 npm run dev          # http://localhost:5195
 npm run phone        # same, reachable from phones on your Wi-Fi
-npm test             # simulation tests, including playthroughs of each level for 2-6 kaiju
+npm test             # simulation tests, incl. a bot that plays every level start to finish solo-style
+                     # (tests/play.ts + tests/playthrough-w*.test.ts) with 2 and 6 kaiju
 npm run build
 npm run smoke        # real-browser check of the menu and every level
 npm run smoke:online # host + phone over the real matchmaking server (needs internet)

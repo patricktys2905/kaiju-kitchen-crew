@@ -5,7 +5,7 @@
 // a friend's head (and get carried when they move or jump). Lifts/doors/scales/toasters/pots are solid
 // fixtures. Ingredients are not solid: they are carried above a kaiju's head, thrown, or lie around.
 import { HEAVY, ITEMS, PHYS, STEP, T, TIMING, WORLD_VIEW as VIEW, type ItemKind } from './constants';
-import { isHazardTile, resolveNeed, TILE_HOT, TILE_ICE, TILE_SHELF, TILE_SOLID, type LevelDef, type PickupKind, type TicketRule } from './level';
+import { TILE_STICKY, isHazardTile, resolveNeed, TILE_HOT, TILE_ICE, TILE_SHELF, TILE_SOLID, type LevelDef, type PickupKind, type TicketRule } from './level';
 
 export interface PlayerInput {
   mx: number; // -1..1
@@ -38,9 +38,10 @@ export interface Player extends BodyBase {
   inRobot: number; // index of the Pot Mech this kaiju is crewing, or -1
   idleT: number; // seconds without any input (napping crew get no job in the Mech)
   grabHeldT: number; // how long GRAB has been held (hold to hop out of the Mech)
+  clingDir: number; // -1/1 while clinging to a sticky sprinkle wall on that side
 }
 export interface Crate extends BodyBase { kind: 'crate'; vx: number; vy: number; need: number; weight: number; homeX: number; homeY: number; pushers: number }
-export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number; bal?: { other: number; base: number; travel: number; left: boolean } }
+export interface Lift extends BodyBase { kind: 'lift'; on?: string; ax: number; ay: number; bx: number; by: number; speed: number; s: number; dir: number; wait: number; bal?: { other: number; base: number; travel: number; left: boolean }; dough?: { base: number; warm: number } }
 export interface Door extends BodyBase { kind: 'door'; on: string; topY: number; fullH: number; open: number }
 export interface Scale extends BodyBase { kind: 'scale'; id: string; need: number; hold: number; load: number; timer: number; active: boolean }
 export interface Toaster extends BodyBase { kind: 'toaster'; on: string; popT: number }
@@ -83,7 +84,7 @@ export interface Sign { x: number; y: number; text: string }
 
 export type Phase = 'play' | 'splat' | 'clear';
 export type GameEvent =
-  | { type: 'jump' | 'land' | 'pickup' | 'spoon' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
+  | { type: 'jump' | 'land' | 'pickup' | 'spoon' | 'wind' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
   | { type: 'melt' | 'smash'; block: number }
   | { type: 'board' | 'exit' | 'heavy' | 'robotJump' | 'robotLand'; p: number }
   | { type: 'ticket'; rule: TicketRule }
@@ -91,7 +92,7 @@ export type GameEvent =
   | { type: 'swim'; p: number }
   | { type: 'ticketEnd' }
   | { type: 'good' | 'wrong' | 'burn'; item: number }
-  | { type: 'recipeDone' | 'clear' | 'respawn' | 'check' | 'scaleOn' | 'scaleOff' | 'toast' | 'door' | 'burnerHot' };
+  | { type: 'recipeDone' | 'clear' | 'respawn' | 'check' | 'scaleOn' | 'scaleOff' | 'toast' | 'door' | 'burnerHot' | 'ding' };
 
 const EPS = 0.01;
 
@@ -116,6 +117,8 @@ export class World {
   pickups: Pickup[] = [];
   /** the level's hidden golden spoon (tile-aligned box), and whether the crew has found it */
   spoon: Box | null = null;
+  /** oven timers: wound with GRAB, their switch is on while time is left */
+  timers: { id: string; x: number; y: number; secs: number; left: number }[] = [];
   spoonGot = false;
   robots: Robot[] = [];
   meltys: Melty[] = [];
@@ -191,6 +194,8 @@ export class World {
         }
         case 'belt': this.belts.push({ kind: 'belt', idx: this.belts.length, x: e.x * T, y: e.y * T, w: e.w * T, h: T, dir: e.dir, speed: e.speed ?? 90 }); break;
         case 'pickup': this.pickups.push({ kind: e.kind, x: e.x * T + 4, y: e.y * T + 4, respawn: 0 }); break;
+        case 'dough': this.lifts.push({ kind: 'lift', idx: this.lifts.length, x: e.x * T, y: e.y * T, w: e.w * T, h: (e.rise + 1) * T, ax: e.x * T, ay: e.y * T, bx: e.x * T, by: (e.y - e.rise) * T, speed: PHYS.doughRise, s: 0, dir: 1, wait: 0, dough: { base: (e.y + 1) * T, warm: 0 } }); break;
+        case 'timer': this.timers.push({ id: e.id, x: e.x * T, y: e.y * T, secs: e.secs, left: 0 }); break;
         case 'spoon': this.spoon = { x: e.x * T + 4, y: e.y * T + 4, w: T - 8, h: T - 8 }; break;
         case 'jelly': this.jellies.push({ kind: 'jelly', idx: this.jellies.length, on: e.on, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, frozen: false, wobble: 0 }); break;
         case 'block': this.blocks.push({ kind: 'block', idx: this.blocks.length, mat: e.mat, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, broken: false, breakT: 0 }); break;
@@ -205,7 +210,7 @@ export class World {
   private makePlayer(idx: number, species: number, name: string): Player {
     return {
       kind: 'player', idx, species, name, x: 0, y: 0, w: PHYS.pw, h: PHYS.ph, vx: 0, vy: 0, facing: 1, grounded: false,
-      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false, inRobot: -1, idleT: 0, grabHeldT: 0,
+      coyote: 0, buffer: 0, canCut: false, jumpPrev: false, grabPrev: false, carry: -1, pushing: null, pushDir: 0, safeX: 0, safeY: 0, landT: 0, big: false, spicyT: 0, fizz: false, inRobot: -1, idleT: 0, grabHeldT: 0, clingDir: 0,
     };
   }
 
@@ -243,6 +248,7 @@ export class World {
 
   switchOn(id: string): boolean {
     if (this.leverOn.get(id)) return true;
+    if (this.timers.some(t => t.id === id && t.left > 0)) return true;
     return this.scales.some(s => s.id === id && (s.active || s.timer > 0));
   }
 
@@ -308,6 +314,16 @@ export class World {
     for (const u of this.bubbles) if (u !== b) out.push(u);
     if (!forItem) for (const p of this.players) if (p !== b && p.inRobot < 0) out.push(p);
     return out;
+  }
+
+  /** -1/1 if a sticky sprinkle wall touches p's left/right side, else 0. */
+  private stickyBeside(p: Player): number {
+    const j0 = Math.floor((p.y + 4) / T), j1 = Math.floor((p.y + p.h - 4) / T);
+    for (const dir of [-1, 1]) {
+      const i = Math.floor((dir < 0 ? p.x - 1 : p.x + p.w + 1) / T);
+      for (let j = j0; j <= j1; j++) if (this.tileAt(i, j) === TILE_STICKY) return dir;
+    }
+    return 0;
   }
 
   /** Solid tile boxes overlapping `box`. Shelves only count when falling onto them from above. */
@@ -407,6 +423,7 @@ export class World {
 
   // ------------------------------------------------------------------ fixtures
   private updateSwitches(): void {
+    for (const t of this.timers) if (t.left > 0) { t.left = Math.max(0, t.left - STEP); if (t.left === 0) this.events.push({ type: 'ding' }); }
     for (const s of this.scales) {
       s.load = this.weightOn(s);
       const was = s.active || s.timer > 0;
@@ -456,6 +473,16 @@ export class World {
         const target = l.bal.base + (l.bal.left ? d : -d);
         const step = Math.max(-l.speed * STEP, Math.min(l.speed * STEP, target - l.y));
         if (Math.abs(step) > 0.01) this.moveKinematic(l, 0, step);
+        continue;
+      }
+      if (l.dough) {
+        // proofing dough: warm feet make it rise; left alone it slowly sinks back
+        // it takes a moment to warm up, so friends can hop on before it starts rising
+        l.dough.warm = this.weightOn(l) > 0 ? l.dough.warm + STEP : 0;
+        const up = l.dough.warm >= PHYS.doughWarm;
+        const ds = ((up ? PHYS.doughRise : PHYS.doughSink) * STEP) / (Math.abs(l.by - l.ay) || 1);
+        const ns = up ? Math.min(1, l.s + ds) : Math.max(0, l.s - ds);
+        if (ns !== l.s && this.moveKinematic(l, 0, l.ay + (l.by - l.ay) * ns - l.y)) l.s = ns;
         continue;
       }
       const len = Math.hypot(l.bx - l.ax, l.by - l.ay) || 1;
@@ -593,6 +620,8 @@ export class World {
       }
       if (p.grounded) p.coyote = PHYS.coyote; else p.coyote -= STEP;
       if (jumpEdge) p.buffer = PHYS.jumpBuffer; else p.buffer -= STEP;
+      p.clingDir = p.grounded ? 0 : this.stickyBeside(p);
+      if (p.clingDir && p.vy > 0) p.coyote = PHYS.coyote;
       const water = this.waterAt(p.x + p.w / 2, p.y + p.h / 2);
       if (water) {
         // near the surface you can jump out; deeper down a jump is a swim stroke
@@ -601,6 +630,7 @@ export class World {
       }
       if (p.buffer > 0 && p.coyote > 0) {
         p.vy = p.fizz ? -PHYS.fizzV : -PHYS.jumpV;
+        if (p.clingDir) { p.vx = -p.clingDir * PHYS.wallKick; p.clingDir = 0; } // kick off the sprinkles
         if (p.fizz) { p.fizz = false; this.events.push({ type: 'fizzJump', p: p.idx }); }
         p.buffer = 0;
         p.coyote = 0;
@@ -617,6 +647,7 @@ export class World {
       p.vx = p.vx < target ? Math.min(target, p.vx + acc) : Math.max(target, p.vx - acc);
       if (water) p.vy = Math.min(260, p.vy * (p.vy < -PHYS.swimV ? 0.97 : 0.92) - this.gravity * 0.35 * STEP); // floaty (a jump out keeps its speed)
       else p.vy = Math.min(this.maxFall, p.vy + this.gravity * STEP);
+      if (p.clingDir && p.vy > PHYS.clingSlide) p.vy = PHYS.clingSlide; // sliding down the sprinkles
       for (const v of this.vents) if (v.state === 'hot' && overlap(p, v)) p.vy = Math.max(-PHYS.ventMax, p.vy - PHYS.ventAcc * STEP);
       // tap jets push you along on top of your own movement
       for (const j of this.jets) if (j.state === 'hot' && overlap(p, j)) this.moveX(p, j.dir * PHYS.jetPush * STEP);
@@ -717,6 +748,14 @@ export class World {
   }
 
   private pullLever(p: Player, reach: Box): boolean {
+    for (const t of this.timers) {
+      if (overlap(reach, { x: t.x + 4, y: t.y, w: T - 8, h: T })) {
+        if (t.left <= 0) this.pulses.add(t.id);
+        t.left = t.secs;
+        this.events.push({ type: 'wind', p: p.idx });
+        return true;
+      }
+    }
     for (const l of this.levers) {
       if (overlap(reach, { x: l.x + 4, y: l.y, w: T - 8, h: T })) {
         this.leverOn.set(l.id, !this.leverOn.get(l.id));

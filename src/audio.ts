@@ -73,6 +73,8 @@ export const sfx = {
   good: () => { tone(523, 0.09, 'triangle', 0.07); tone(784, 0.14, 'triangle', 0.07, 0, 0.08); noise(0.25, 0.04, 1200, 0.02); },
   wrong: () => { tone(200, 0.12, 'square', 0.06, -60); tone(150, 0.2, 'square', 0.05, -40, 0.1); },
   burn: () => { noise(0.4, 0.1, 2500); tone(400, 0.3, 'sawtooth', 0.03, -250); },
+  wind: () => { for (let k = 0; k < 5; k++) tone(2200 - k * 90, 0.02, 'square', 0.03, 0, k * 0.035); },
+  ding: () => { tone(1568, 0.5, 'triangle', 0.07); tone(2093, 0.4, 'triangle', 0.04, 0, 0.02); },
   spoon: () => { [1046, 1318, 1568, 2093, 2637].forEach((f, i) => tone(f, 0.12, 'triangle', 0.05, 0, i * 0.055)); },
   recipeDone: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.14, 'triangle', 0.07, 0, i * 0.08)); },
   splat: () => { noise(0.3, 0.18, 1400); tone(240, 0.35, 'square', 0.07, -200); },

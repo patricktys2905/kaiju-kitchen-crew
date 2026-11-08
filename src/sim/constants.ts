@@ -16,6 +16,11 @@ export const PHYS = {
   accelAir: 1700,
   gravity: 2200,
   maxFall: 1100,
+  doughRise: 38, // px/s while someone stands on proofing dough
+  doughSink: 60,
+  doughWarm: 1, // seconds of standing before dough starts to rise
+  clingSlide: 45, // slide speed down a sticky sprinkle wall
+  wallKick: 170, // sideways kick when jumping off one
   jumpV: 700, // ≈ 110 px jump: 3 tiles needs a friend to stand on
   jumpCut: 0.45, // releasing jump early cuts the rise
   coyote: 0.08,

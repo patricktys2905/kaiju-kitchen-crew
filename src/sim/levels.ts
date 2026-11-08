@@ -8,6 +8,7 @@ import { PANTRY_LEVELS } from './levels-pantry';
 import { STOVE_LEVELS } from './levels-stove';
 import { SINK_LEVELS } from './levels-sink';
 import { DINNER_LEVELS } from './levels-dinner';
+import { BAKERY_LEVELS } from './levels-bakery';
 
 function shelfHelp(): LevelDef {
   const b = new LevelBuilder('Shelf Help', 'Counter Top', 'Get everyone up the counter and cook some toast!', 46, ['bread']).room();
@@ -142,4 +143,4 @@ function sandwichRush(): LevelDef {
 }
 
 export const COUNTER_LEVELS: LevelDef[] = [shelfHelp(), weighIn(), sugarCubes(), popUp(), hotHob(), sandwichRush()];
-export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS, ...PANTRY_LEVELS, ...STOVE_LEVELS, ...SINK_LEVELS, ...DINNER_LEVELS];
+export const LEVELS: LevelDef[] = [...COUNTER_LEVELS, ...FRIDGE_LEVELS, ...PANTRY_LEVELS, ...STOVE_LEVELS, ...SINK_LEVELS, ...DINNER_LEVELS, ...BAKERY_LEVELS];

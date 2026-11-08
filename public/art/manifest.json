@@ -1,4 +1,6 @@
 [
+ "bg-bakery",
+ "bg-bakery2",
  "bg-dining",
  "bg-dining2",
  "bg-fridge",
@@ -96,6 +98,7 @@
  "ob-toaster",
  "ob-trap",
  "ob-vent",
+ "tex-bakery",
  "tex-cabinet",
  "tex-dining",
  "tex-fridge",

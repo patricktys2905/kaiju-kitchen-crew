@@ -2,7 +2,7 @@
 import type * as Phaser from 'phaser';
 import { addSlice, fitInside, hasArt, type SlicePool, type SpritePool } from './art';
 import { ITEMS, PHYS, T, type ItemKind } from '../sim/constants';
-import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID, TILE_TRAP } from '../sim/level';
+import { TILE_HOT, TILE_ICE, TILE_ICICLE, TILE_SHELF, TILE_SOLID, TILE_STICKY, TILE_TRAP } from '../sim/level';
 import { SPECIES } from '../sim/constants';
 import type { World } from '../sim/world';
 
@@ -19,6 +19,7 @@ const THEMES: Record<string, { walls: [string, string]; tex: string; lip?: [numb
   'Stove & Oven': { walls: ['bg-oven', 'bg-oven2'], tex: 'tex-stove', lip: [0xb8bec6, 0x5a5f66] },
   'The Sink': { walls: ['bg-sink', 'bg-sink2'], tex: 'tex-sink', lip: [0xf4f9fc, 0x9fb8c8] },
   'Dinner Service': { walls: ['bg-dining', 'bg-dining2'], tex: 'tex-dining', lip: [0xe8c27a, 0x8a5a2a] },
+  'The Bakery': { walls: ['bg-bakery', 'bg-bakery2'], tex: 'tex-bakery', lip: [0xf3dfb8, 0xa07a48] },
 };
 
 /** Backdrop + static tiles with the Gemini art (wall paintings, cabinet + marble textures, shelves). */
@@ -86,11 +87,26 @@ export function buildStatic(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer
       g.fillStyle(0xffffff, 0.8).fillRect(x, y, T, 4);
     } else if (t === TILE_ICICLE) {
       drawIcicles(g, x, y);
+    } else if (t === TILE_STICKY) {
+      drawSticky(g, x, y, i, j);
     } else if (t === TILE_TRAP) {
       layer.add(scene.add.image(x, y, solidTex, 'c' + ((j % 4) * 4 + (i % 4))).setOrigin(0).setDisplaySize(T, T).setDepth(0.1));
       if (hasArt('ob-trap')) layer.add(fitInside(scene.add.image(x + T / 2, y + 6, 'ob-trap'), T + 8, 26).setOrigin(0.5, 1).setDepth(0.4));
       else drawTrap(g, x, y);
     }
+  }
+}
+
+/** Frosted wall with sprinkles stuck all over it (you can cling to it). */
+function drawSticky(g: G, x: number, y: number, i: number, j: number): void {
+  g.fillStyle(0xc98a5a, 1).fillRect(x, y, T, T);
+  g.fillStyle(0xffb8d0, 1).fillRoundedRect(x + 2, y + 1, T - 4, T - 2, 8);
+  g.fillStyle(0xffd4e3, 1).fillRoundedRect(x + 5, y + 4, T - 18, 8, 4);
+  const cols = [0xff4a6a, 0x4ab0ff, 0xffe14a, 0x6ad86a, 0xffffff, 0xb07aff];
+  for (let k = 0; k < 7; k++) {
+    const h = (i * 73 + j * 31 + k * 17) % 97;
+    const sx = x + 6 + (h % 28), sy = y + 6 + ((h * 7) % 28), a = (h % 6) * 0.5;
+    g.lineStyle(3, cols[(h + k) % cols.length], 1).lineBetween(sx, sy, sx + Math.cos(a) * 6, sy + Math.sin(a) * 6);
   }
 }
 
@@ -410,6 +426,18 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
   }
   // lifts (spatulas)
   for (const l of w.lifts) {
+    if (l.dough) {
+      // a puffy column of bread dough from the floor up to its top
+      const top = l.y, bot = l.dough.base, h = Math.max(T * 0.6, bot - top);
+      g.fillStyle(0x000000, 0.12).fillEllipse(l.x + l.w / 2, bot, l.w + 6, 10);
+      g.fillStyle(0xd9b98a, 1).fillRoundedRect(l.x + 2, top + 6, l.w - 4, h - 6, 10);
+      g.fillStyle(0xf3dfb8, 1).fillRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
+      g.fillStyle(0xfff4dc, 0.9).fillRoundedRect(l.x + 6, top - 1, l.w * 0.45, 8, 4);
+      g.fillStyle(0xc9a271, 0.7);
+      for (let k = 0; k < l.w / 26; k++) g.fillCircle(l.x + 14 + k * 26, top + 30 + ((k * 17) % 22), 2.5);
+      g.lineStyle(2, 0xa07a48, 0.6).strokeRoundedRect(l.x - 3, top - 4, l.w + 6, 26, 13);
+      continue;
+    }
     if (l.bal) {
       const cx = l.x + l.w / 2;
       g.lineStyle(3, 0x8a6a3a, 1).lineBetween(l.x + 6, l.y, cx, l.y - 70).lineBetween(l.x + l.w - 6, l.y, cx, l.y - 70).lineBetween(cx, l.y - 70, cx, 0);
@@ -451,6 +479,18 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
     }
   }
   // levers
+  // oven timers: a wind-up kitchen timer; the red wedge is the time left
+  for (const t of w.timers) {
+    const cx = t.x + T / 2, cy = t.y + T / 2 + 2, r = 17;
+    const frac = t.left > 0 ? t.left / t.secs : 0;
+    const shake = t.left > 0 && t.left < 2 ? Math.sin(time * 60) * 1.5 : 0;
+    g.fillStyle(0x000000, 0.15).fillEllipse(cx, t.y + T, 34, 6);
+    g.fillStyle(0xf4f1ea, 1).fillCircle(cx + shake, cy, r);
+    g.lineStyle(4, 0xe0533a, 1).strokeCircle(cx + shake, cy, r);
+    if (frac > 0) g.fillStyle(0xff8a6a, 0.85).slice(cx + shake, cy, r - 3, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2, false).fillPath();
+    g.fillStyle(0x6b2a1e, 1).fillRect(cx - 5 + shake, cy - r - 6, 10, 6);
+    g.lineStyle(2, 0x3a1f0e, 1).lineBetween(cx + shake, cy, cx + shake + Math.cos(-Math.PI / 2 + frac * Math.PI * 2) * (r - 4), cy + Math.sin(-Math.PI / 2 + frac * Math.PI * 2) * (r - 4));
+  }
   for (const l of w.levers) {
     const on = !!w.leverOn.get(l.id);
     const bx = l.x + T / 2, by = l.y + T;

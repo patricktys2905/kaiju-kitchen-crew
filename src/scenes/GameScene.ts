@@ -348,6 +348,8 @@ export class GameScene extends Phaser.Scene {
         case 'throw': sfx.throw(); break;
         case 'catch': sfx.catch(); this.popup('Nice catch!', w.players[e.p].x + PHYS.pw / 2, w.players[e.p].y - 30, '#9fe0ff'); break;
         case 'lever': sfx.lever(); break;
+        case 'wind': sfx.wind(); break;
+        case 'ding': sfx.ding(); break;
         case 'scaleOn': sfx.scaleOn(); break;
         case 'scaleOff': sfx.scaleOff(); break;
         case 'door': sfx.door(); break;

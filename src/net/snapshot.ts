@@ -23,6 +23,7 @@ export interface Snapshot {
   lv: string[]; // levers that are on
   k?: number[]; // pickups respawn
   gs?: number; // golden spoon found
+  ti?: number[]; // oven timers: seconds left
   j?: number[][]; // jelly frozen wobble
   bl?: number[][]; // blocks broken breakT
   r?: number[][]; // robots x y vx vy facing carry grounded landT armT ...crew
@@ -44,6 +45,7 @@ export function makeSnapshot(w: World): Snapshot {
     p: w.players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), p.facing, p.carry, p.grounded ? 1 : 0, r2(p.landT), p.big ? 1 : 0, r2(p.spicyT), p.fizz ? 1 : 0]),
     k: w.pickups.map(pk => r2(pk.respawn)),
     gs: w.spoonGot ? 1 : 0,
+    ti: w.timers.map(t => r2(t.left)),
     j: w.jellies.map(j => [j.frozen ? 1 : 0, r2(j.wobble)]),
     bl: w.blocks.map(b => [b.broken ? 1 : 0, r2(b.breakT)]),
     r: w.robots.map(r => [r1(r.x), r1(r.y), r1(r.vx), r1(r.vy), r.facing, r.carry, r.grounded ? 1 : 0, r2(r.landT), r2(r.armT), ...r.crew]),
@@ -112,6 +114,7 @@ export function applySnapshot(w: World, s: Snapshot): void {
   s.ha?.forEach((a, i) => { const h = w.hands[i]; if (h) { h.state = HS[a[0]]; h.t = a[1]; h.tx = a[2]; } });
   s.k?.forEach((v, i) => { const pk = w.pickups[i]; if (pk) pk.respawn = v; });
   w.spoonGot = s.gs === 1;
+  s.ti?.forEach((v, i) => { const t = w.timers[i]; if (t) t.left = v; });
   s.j?.forEach((a, i) => { const j = w.jellies[i]; if (j) { j.frozen = a[0] === 1; j.wobble = a[1]; } });
   s.bl?.forEach((a, i) => { const b = w.blocks[i]; if (b) { b.broken = a[0] === 1; b.breakT = a[1]; } });
   s.i.forEach((a, k) => {

@@ -61,6 +61,13 @@ const SONGS: Record<string, Song> = {
     tune: ['E5 . . G5 . .', 'A5 . . C6 . A5', 'G5 . . D5 . .', 'E5 . . . . -',
       'C6 . . B5 . A5', 'A5 . . F5 . .', 'G5 . A5 B5 . D6', 'C6 . . . . -'],
   },
+  // a warm, bouncy shuffle that smells of fresh bread
+  'The Bakery': {
+    bpm: 144, steps: 8, swing: 0.18, shift: 5, lead: 'square', leadVol: 0.026, bass: 'triangle', drums: true,
+    chords: ['C', 'G', 'Am', 'F', 'C', 'G', 'F', 'C'],
+    tune: ['C5 . E5 G5 . E5 C5 .', 'D5 . G5 B5 . G5 D5 .', 'E5 . A5 C6 . A5 E5 .', 'F5 . . A5 C6 . . -',
+      'G5 . E5 C5 . E5 G5 C6', 'B5 . G5 D5 . G5 B5 D6', 'C6 . A5 F5 . D5 F5 A5', 'C6 . . G5 C5 - - -'],
+  },
   // jazzy swing for the restaurant
   'Dinner Service': {
     bpm: 132, steps: 8, swing: 0.25, shift: 0, lead: 'square', leadVol: 0.024, bass: 'triangle', drums: true,

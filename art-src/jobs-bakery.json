@@ -1,0 +1,10 @@
+[
+  {
+    "name": "bg-bakery",
+    "newChat": true,
+    "refs": ["art-src/ref-style.png"],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer set in a giant cosy kitchen. I need the BACKGROUND WALL for the BAKERY levels, in the same soft chunky cartoon game art style (clean outlines, warm saturated colours, soft shading). Straight-on side view of a warm bakery wall: rustic cream plaster and warm red brick, a big arched brick bread oven glowing softly orange, wooden racks full of golden loaves, croissants and baguettes, hanging wooden paddles and rolling pins, a flour sack. Keep it calm and slightly soft so characters in front stand out. IMPORTANT: no counter, no floor, nothing at the bottom, no characters, no text. Wide 16:9 landscape image."
+  },
+  { "name": "bg-bakery2", "prompt": "Another background wall, same style and same bakery, continuing to the right: cream plaster and brick, a big chalkboard menu with drawn cupcakes (no readable words), shelves of decorated cakes, cupcakes and cookie jars, strings of bunting, a window with warm light. Calm and slightly soft. No counter, no floor, nothing at the bottom, no characters, no text. Wide 16:9 landscape." },
+  { "name": "tex-bakery", "prompt": "Now a seamless TILEABLE texture in the same style: the side of a giant loaf of golden-brown crusty bread / baked sponge cake, flat straight-on view, warm golden crust colour with gentle soft crumb texture, simple and not busy, evenly lit, the pattern must tile seamlessly on all sides. Square 1:1." }
+]

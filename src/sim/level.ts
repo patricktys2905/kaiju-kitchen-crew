@@ -12,6 +12,7 @@ export const TILE_HOT = 3; // always-hot hob: solid, splats on touch
 export const TILE_ICE = 4; // slippery floor
 export const TILE_ICICLE = 5; // icicles: solid, splats on touch
 export const TILE_TRAP = 6; // mousetrap: solid, splats on touch
+export const TILE_STICKY = 7; // sprinkle-frosted wall: solid; cling to its sides and wall-jump
 export const isHazardTile = (t: number) => t === TILE_HOT || t === TILE_ICICLE || t === TILE_TRAP;
 
 /** Order tickets change one rule until the next ticket (or for `dur` seconds). 'untie' cuts the noodle. */
@@ -32,6 +33,8 @@ export type EntDef =
   | { t: 'burner'; x: number; y: number; w: number; cold: number; hot: number; offset?: number }
   | { t: 'check'; x: number; y: number }
   | { t: 'pickup'; kind: PickupKind; x: number; y: number } // eaten on touch, grows back
+  | { t: 'dough'; x: number; y: number; w: number; rise: number } // rises (slowly) while someone stands on it, sinks back when empty
+  | { t: 'timer'; id: string; x: number; y: number; secs: number } // GRAB to wind: its switch is on until it rings
   | { t: 'spoon'; x: number; y: number } // the hidden golden spoon: touch it, then clear the level, for a star
   | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
   | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
@@ -78,6 +81,7 @@ export class LevelBuilder {
   ice(x: number, y: number, w: number, h = 1): this { return this.fill(x, y, w, h, TILE_ICE); }
   icicles(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_ICICLE); }
   traps(x: number, y: number, w: number): this { return this.fill(x, y, w, 1, TILE_TRAP); }
+  sticky(x: number, y: number, w: number, h: number): this { return this.fill(x, y, w, h, TILE_STICKY); }
   tetherLen?: number;
   tie(len: number): this { this.tetherLen = len; return this; }
   /** Standard floor (rows 16-17) and side walls. */

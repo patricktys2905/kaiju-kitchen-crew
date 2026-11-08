@@ -15,7 +15,7 @@ describe('every level is well-formed', () => {
         expect(have).toEqual([...lvl.recipe].sort());
       });
       it('every door/lift/toaster is wired to a switch that exists', () => {
-        const ids = new Set(lvl.ents.flatMap(e => (e.t === 'lever' || e.t === 'scale' ? [e.id] : [])));
+        const ids = new Set(lvl.ents.flatMap(e => (e.t === 'lever' || e.t === 'scale' || e.t === 'timer' ? [e.id] : [])));
         for (const e of lvl.ents) if ((e.t === 'door' || e.t === 'toaster' || (e.t === 'lift' && e.on)) && 'on' in e) expect(ids.has(e.on!)).toBe(true);
       });
       it('has at most one golden spoon, floating in open air', () => {

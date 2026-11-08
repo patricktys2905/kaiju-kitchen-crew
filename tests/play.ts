@@ -53,7 +53,7 @@ export class Play {
   }
   waitFor(cond: () => boolean, max: number, what: string): void {
     for (let f = 0; f < max && !cond(); f++) this.step([]);
-    if (!cond()) throw new Error(`stuck waiting: ${what} — ` + this.where());
+    if (!cond()) throw new Error(`stuck waiting: ${what} — ` + this.where() + this.recent());
   }
 
   /** Walk (hopping gaps and steps) to x tiles. */

@@ -31,8 +31,11 @@ function swingShift(): LevelDef {
   const b = new LevelBuilder('Swing Shift', W3, 'Dangle a friend down the shaft and swing them into the nook. Mind the mousetraps!', 60, ['pasta', 'flour']).room().tie(170);
   b.solid(1, 10, 11, 6) // ledge A
     .traps(12, 16, 2) // mousetraps at the bottom of the shaft
-    .solid(14, 10, 12, 6) // ledge B...
+    .solid(14, 10, 7, 6) // ledge B...
     .clear(14, 12, 2, 2) // ...with a nook in its side
+    // ...then stairs down to the stepping stones. (Was a sheer 6-tile drop: longer than the noodle, so a
+    // player moving one kaiju at a time had to dangle the whole team down into a pile beside the mousetraps.)
+    .solid(21, 11, 1, 5).solid(22, 12, 1, 4).solid(23, 13, 1, 3).solid(24, 14, 1, 2).solid(25, 15, 1, 1)
     .traps(28, 16, 2).solid(30, 15, 2, 1).traps(32, 16, 2).solid(34, 15, 2, 1).traps(36, 16, 2)
     .add(
       { t: 'item', kind: 'pasta', x: 14, y: 13 },
@@ -116,7 +119,9 @@ function pantryPanic(): LevelDef {
     .solid(32, 13, 6, 3)
     .solid(50, 0, 1, 8)
     .solid(58, 12, 10, 4)
-    .traps(76, 16, 2)
+    // mousetraps sunk in a little trench: kaiju hop it, the Mech's wide feet straddle it. (They used to sit on
+    // the floor, and the Mech can't jump 2 tiles of traps without a ticket, so the watermelon never reached the pot.)
+    .clear(76, 16, 2, 1).traps(76, 17, 2)
     .add(
       { t: 'item', kind: 'honey', x: 10, y: 15 },
       { t: 'ticket', x: 34, rule: 'untie' },

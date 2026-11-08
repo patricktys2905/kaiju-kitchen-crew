@@ -356,3 +356,15 @@ describe('Pot Mech: hopping out keeps what the arm holds', () => {
     expect(r.carry).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('Pot Mech: boarding next to the watermelon', () => {
+  it('GRAB beside both the melon and the Mech climbs in', async () => {
+    const { Play } = await import('./play');
+    const { flatRoom } = await import('./helpers');
+    const g = new Play(flatRoom(30, b => b.add({ t: 'robot', x: 14, y: 13 }, { t: 'item', kind: 'melon', x: 12, y: 15 })), 2);
+    const [A] = g.order();
+    g.walk(A, 13.3);
+    g.grab(A);
+    expect(g.P(A).inRobot).toBe(0);
+  });
+});

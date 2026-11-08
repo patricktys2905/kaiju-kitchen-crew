@@ -737,7 +737,13 @@ export class World {
       if (d < bestD) { bestD = d; best = it; }
     }
     if (best) {
-      if (HEAVY.includes(best.kind)) { this.events.push({ type: 'heavy', p: p.idx }); return; }
+      if (HEAVY.includes(best.kind)) {
+        // too heavy to lift: if the Mech is right here, climb in instead (only its arm can lift it)
+        const mech = this.robots.find(r => overlap({ x: reach.x - 16, y: reach.y - 16, w: reach.w + 32, h: reach.h + 32 }, r));
+        if (mech) { this.board(p, mech); return; }
+        this.events.push({ type: 'heavy', p: p.idx });
+        return;
+      }
       this.pick(p, best);
       return;
     }

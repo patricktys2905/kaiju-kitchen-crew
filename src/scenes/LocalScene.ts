@@ -4,7 +4,8 @@ import { sfx } from '../audio';
 import { clearTaps, consumeTap } from '../input';
 import { MAX_PLAYERS, MIN_PLAYERS } from '../sim/constants';
 import { setTouchMode } from '../touch';
-import { kaijuGrid, levelGrid, mountPanel, seatRow } from '../ui';
+import { hatRow, kaijuGrid, levelGrid, mountPanel, seatRow } from '../ui';
+import { setHat } from '../progress';
 import { drawMenuBackdrop } from './MenuScene';
 import { playMusic } from '../music';
 
@@ -40,6 +41,7 @@ export class LocalScene extends Phaser.Scene {
       <div class="row">${Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, k) => k + MIN_PLAYERS).map(n => `<button data-count="${n}" class="${n === saved.count ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${seats}
       ${kaijuGrid(saved.species[saved.seat], taken)}
+      ${hatRow(saved.species[saved.seat])}
       <h2>Level</h2>
       ${levelGrid(saved.level)}
       <div class="row"><button class="go" data-act="start">Start cooking ▶</button><button data-act="back">Back</button></div>
@@ -55,6 +57,7 @@ export class LocalScene extends Phaser.Scene {
       sfx.pickup();
       this.render();
     }));
+    root.querySelectorAll<HTMLButtonElement>('button[data-hat]').forEach(b => b.addEventListener('click', () => { setHat(saved.species[saved.seat], b.dataset.hat ?? ''); sfx.pickup(); this.render(); }));
     root.querySelectorAll<HTMLButtonElement>('button[data-act]').forEach(b => b.addEventListener('click', () => this.act(b.dataset.act!)));
   }
 

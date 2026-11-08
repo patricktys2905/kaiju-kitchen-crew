@@ -20,6 +20,7 @@ function shelfHelp(): LevelDef {
       { t: 'pot', x: 31, y: 12 },
       { t: 'plate', x: 37, y: 12, w: 7 },
       { t: 'sign', x: 3, y: 11, text: "Too high? Stand on a friend's head and JUMP!" },
+      { t: 'spoon', x: 1, y: 11 }, // up in the corner: needs a friend's head
       { t: 'sign', x: 17, y: 9, text: 'GRAB the lever to work the spatula lift' },
       { t: 'sign', x: 25, y: 9, text: 'GRAB the bread, carry it to the pot' },
       { t: 'sign', x: 36, y: 9, text: 'Recipe done? Everyone onto the plate!' },
@@ -41,6 +42,7 @@ function weighIn(): LevelDef {
       { t: 'plate', x: 46, y: 15, w: 8 },
       { t: 'sign', x: 10, y: 11, text: 'Everyone on the scale starts the timer' },
       { t: 'sign', x: 17, y: 8, text: 'Shelves: jump up through them' },
+      { t: 'spoon', x: 23, y: 7 }, // past the top shelf's edge: a leap from up there
       { t: 'sign', x: 37, y: 11, text: 'Follow the recipe card: order matters!' },
     );
   return b.start(2).build();
@@ -61,6 +63,7 @@ function sugarCubes(): LevelDef {
       { t: 'pot', x: 44, y: 15 },
       { t: 'plate', x: 50, y: 15, w: 8 },
       { t: 'sign', x: 4, y: 11, text: 'Push the little cube under the shelf' },
+      { t: 'spoon', x: 23, y: 10 }, // above the big cube: grab it before pushing the cube away
       { t: 'sign', x: 20, y: 10, text: 'Big cube: push it together' },
       { t: 'sign', x: 29, y: 11, text: 'This scale wants 3 weight' },
     );
@@ -81,6 +84,7 @@ function popUp(): LevelDef {
       { t: 'plate', x: 43, y: 7, w: 9 },
       { t: 'sign', x: 3, y: 11, text: 'Hop on the toaster, a friend pulls the lever' },
       { t: 'sign', x: 19, y: 4, text: 'Pull this one to pop up the rest' },
+      { t: 'spoon', x: 15, y: 5 }, // straight above the toaster: pop up without steering
     );
   return b.start(2).build();
 }
@@ -106,6 +110,7 @@ function hotHob(): LevelDef {
       { t: 'plate', x: 67, y: 15, w: 8 },
       { t: 'sign', x: 8, y: 11, text: 'Wait for the hob to cool, then run!' },
       { t: 'sign', x: 21, y: 11, text: 'Ride the spatula across' },
+      { t: 'spoon', x: 29, y: 11 }, // over the hot pit: jump off the moving spatula
     );
   return b.start(2).build();
 }
@@ -131,6 +136,7 @@ function sandwichRush(): LevelDef {
       { t: 'item', kind: 'bread', x: 60, y: 15 },
       { t: 'pot', x: 66, y: 15 },
       { t: 'plate', x: 72, y: 15, w: 10 },
+      { t: 'spoon', x: 29, y: 8 }, // high over the end of the counter: needs a boost
     );
   return b.start(2).build();
 }

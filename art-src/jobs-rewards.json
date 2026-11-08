@@ -1,0 +1,90 @@
+[
+  {
+    "name": "hat-chef",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a tall puffy white chef toque with a pleated band."
+  },
+  {
+    "name": "hat-party",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a cone-shaped party hat, blue and yellow stripes with an orange pompom on top and a thin elastic string."
+  },
+  {
+    "name": "hat-crown",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a small golden royal crown with three points and red and green jewels."
+  },
+  {
+    "name": "hat-beanie",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a cosy knitted woolly beanie in teal with a cream pompom and ribbed fold-up brim."
+  },
+  {
+    "name": "hat-viking",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a round steel viking helmet with two curved cream horns and a brass rim."
+  },
+  {
+    "name": "hat-flower",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a big cheerful yellow sunflower worn like a hat, petals all around a brown centre, two green leaves."
+  },
+  {
+    "name": "hat-pirate",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a black pirate tricorn hat with a white skull-and-crossbones emblem and gold trim."
+  },
+  {
+    "name": "hat-propeller",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a kid propeller beanie cap in red, yellow, blue and green segments with a little red propeller on top."
+  },
+  {
+    "name": "hat-tophat",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a tall shiny black top hat with an orange ribbon band."
+  },
+  {
+    "name": "hat-cowboy",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game (tiny food monsters in a giant kitchen). I need a small HAT accessory sprite that the monsters can wear, in EXACTLY this same art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. Seen from the front/side like a 2D platformer sprite, one hat only, nobody wearing it, centred, filling about 85% of the frame, on a solid flat magenta (#FF00FF) background, no pink or magenta anywhere on the hat, no shadow, no face, no text, nothing else. Square 1:1. The hat: a tan brown cowboy hat with a wide curled brim and a darker band."
+  },
+  {
+    "name": "it-spoon",
+    "newChat": true,
+    "refs": [
+      "art-src/ref-style.png"
+    ],
+    "prompt": "Generate an image. These are characters from my 2D side-view platformer game set in a giant kitchen. I need a small COLLECTIBLE icon in EXACTLY this art style: soft chunky cartoon game art, clean dark outlines, bright saturated colours, smooth cel shading with glossy highlights. A shiny GOLDEN SPOON, tilted diagonally, gleaming gold with bright white sparkle highlights and a couple of little star twinkles around it, centred, filling about 80% of the frame, on a solid flat magenta (#FF00FF) background, no shadow, no face, no text, nothing else. Square 1:1."
+  }
+]

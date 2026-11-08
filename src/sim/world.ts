@@ -83,7 +83,7 @@ export interface Sign { x: number; y: number; text: string }
 
 export type Phase = 'play' | 'splat' | 'clear';
 export type GameEvent =
-  | { type: 'jump' | 'land' | 'pickup' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
+  | { type: 'jump' | 'land' | 'pickup' | 'spoon' | 'throw' | 'catch' | 'lever' | 'splat' | 'grow' | 'shrink' | 'spicy' | 'fizz' | 'fizzJump' | 'bounce'; p: number }
   | { type: 'melt' | 'smash'; block: number }
   | { type: 'board' | 'exit' | 'heavy' | 'robotJump' | 'robotLand'; p: number }
   | { type: 'ticket'; rule: TicketRule }
@@ -114,6 +114,9 @@ export class World {
   jellies: Jelly[] = [];
   blocks: Block[] = [];
   pickups: Pickup[] = [];
+  /** the level's hidden golden spoon (tile-aligned box), and whether the crew has found it */
+  spoon: Box | null = null;
+  spoonGot = false;
   robots: Robot[] = [];
   meltys: Melty[] = [];
   vents: Vent[] = [];
@@ -188,6 +191,7 @@ export class World {
         }
         case 'belt': this.belts.push({ kind: 'belt', idx: this.belts.length, x: e.x * T, y: e.y * T, w: e.w * T, h: T, dir: e.dir, speed: e.speed ?? 90 }); break;
         case 'pickup': this.pickups.push({ kind: e.kind, x: e.x * T + 4, y: e.y * T + 4, respawn: 0 }); break;
+        case 'spoon': this.spoon = { x: e.x * T + 4, y: e.y * T + 4, w: T - 8, h: T - 8 }; break;
         case 'jelly': this.jellies.push({ kind: 'jelly', idx: this.jellies.length, on: e.on, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, frozen: false, wobble: 0 }); break;
         case 'block': this.blocks.push({ kind: 'block', idx: this.blocks.length, mat: e.mat, x: e.x * T, y: e.y * T, w: e.w * T, h: e.h * T, broken: false, breakT: 0 }); break;
       }
@@ -1199,6 +1203,11 @@ export class World {
   }
 
   private updatePickups(): void {
+    if (this.spoon && !this.spoonGot) {
+      const sp = this.spoon;
+      const who = this.players.find(p => p.inRobot < 0 && overlap(p, sp)) ?? null;
+      if (who || this.robots.some(r => overlap(r, sp))) { this.spoonGot = true; this.events.push({ type: 'spoon', p: who?.idx ?? 0 }); }
+    }
     for (const pk of this.pickups) {
       if (pk.respawn > 0) { pk.respawn = Math.max(0, pk.respawn - STEP); continue; }
       const box = { x: pk.x, y: pk.y, w: T - 8, h: T - 8 };

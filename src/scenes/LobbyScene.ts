@@ -7,7 +7,8 @@ import { MAX_GUESTS, NetGuest, NetHost, type LobbySeat, type NetMsg } from '../n
 import { SPECIES } from '../sim/constants';
 import { LEVELS } from '../sim/levels';
 import { setTouchMode } from '../touch';
-import { cycleSpecies, esc, kaijuGrid, levelGrid, mountPanel, seatRow } from '../ui';
+import { cycleSpecies, esc, hatRow, kaijuGrid, levelGrid, mountPanel, seatRow } from '../ui';
+import { hatOf, setHat } from '../progress';
 import { drawMenuBackdrop } from './MenuScene';
 import { playMusic } from '../music';
 
@@ -81,6 +82,7 @@ export class LobbyScene extends Phaser.Scene {
     host.onGuestLeave = g => { this.seats = this.seats.filter(s => s.guest !== g); sfx.leave(); this.syncLobby(); };
     host.onPick = (g, dir) => { const i = this.seats.findIndex(s => s.guest === g); if (i >= 0) this.cycle(i, dir); };
     host.onChoose = (g, sp) => { const i = this.seats.findIndex(s => s.guest === g); if (i >= 0) this.choose(i, sp); };
+    host.onHat = (g, hat) => { const i = this.seats.findIndex(s => s.guest === g); if (i >= 0 && this.seats[i].hat !== hat) { this.seats[i].hat = hat; this.syncLobby(); } };
   }
 
   private startHosting(): void {
@@ -106,7 +108,7 @@ export class LobbyScene extends Phaser.Scene {
     guest.onStatus = (t, ok) => { this.status = t; this.statusOk = ok; this.render(); };
     guest.onClosed = reason => { this.status = reason; this.statusOk = false; this.seats = []; this.guest = null; this.render(); };
     guest.onMsg = (m: NetMsg) => {
-      if (m.t === 'lobby') { this.seats = m.seats; this.mySeat = m.you; this.level = m.level; this.render(); }
+      if (m.t === 'lobby') { this.seats = m.seats; this.mySeat = m.you; this.level = m.level; this.sendMyHat(); this.render(); }
       if (m.t === 'start') this.launchGuest(m);
     };
     guest.join(code, name || 'Friend');
@@ -139,15 +141,24 @@ export class LobbyScene extends Phaser.Scene {
     if (!host || this.seats.length < 2) return;
     const species = this.seats.map(s => s.species);
     const names = this.seats.map(s => s.name);
-    this.seats.forEach((s, i) => { if (s.who === 'guest' && s.guest !== undefined) host.send(s.guest, { t: 'start', species, names, seat: i, level: this.level }); });
+    const hats = this.seats.map((s, i) => (i === 0 ? hatOf(s.species) : s.hat ?? ''));
+    this.seats.forEach((s, i) => { if (s.who === 'guest' && s.guest !== undefined) host.send(s.guest, { t: 'start', species, names, seat: i, level: this.level, hats }); });
     this.leaving = true;
-    this.scene.start('game', { mode: 'host', species, names, level: this.level, host, seats: this.seats });
+    this.scene.start('game', { mode: 'host', species, names, level: this.level, host, seats: this.seats, hats });
+  }
+
+  /** Guests tell the host which hat their kaiju wears (hats unlock on each player's own device). */
+  private sendMyHat(): void {
+    const me = this.seats[this.mySeat];
+    if (!this.guest || !me) return;
+    const hat = hatOf(me.species);
+    if ((me.hat ?? '') !== hat) this.guest.send({ t: 'hat', hat });
   }
 
   private launchGuest(m: Extract<NetMsg, { t: 'start' }>): void {
     if (!this.guest) return;
     this.leaving = true;
-    this.scene.start('game', { mode: 'guest', species: m.species, names: m.names, level: m.level, guest: this.guest, seat: m.seat });
+    this.scene.start('game', { mode: 'guest', species: m.species, names: m.names, level: m.level, guest: this.guest, seat: m.seat, hats: m.hats });
   }
 
   private render(): void {
@@ -161,7 +172,7 @@ export class LobbyScene extends Phaser.Scene {
     }).join('');
     const meIdx = this.host ? 0 : this.mySeat;
     const takenBy = new Map(this.seats.filter((_, k) => k !== meIdx).map(s => [s.species, s.name.slice(0, 6)] as [number, string]));
-    const grid = this.seats[meIdx] ? kaijuGrid(this.seats[meIdx].species, takenBy) : '';
+    const grid = this.seats[meIdx] ? kaijuGrid(this.seats[meIdx].species, takenBy) + hatRow(this.seats[meIdx].species) : '';
     let html = '';
     if (this.view === 'choose') {
       html = `<h1>Play online</h1>
@@ -204,6 +215,13 @@ export class LobbyScene extends Phaser.Scene {
       const sp = Number(b.dataset.kaiju);
       if (this.host) this.choose(0, sp);
       else this.guest?.send({ t: 'choose', species: sp });
+    }));
+    root.querySelectorAll<HTMLButtonElement>('button[data-hat]').forEach(b => b.addEventListener('click', () => {
+      const me = this.seats[this.host ? 0 : this.mySeat];
+      if (!me) return;
+      setHat(me.species, b.dataset.hat ?? '');
+      sfx.pickup();
+      if (this.host) { me.hat = hatOf(me.species); this.syncLobby(); } else { this.sendMyHat(); this.render(); }
     }));
     root.querySelectorAll<HTMLButtonElement>('button[data-level]').forEach(b => b.addEventListener('click', () => { this.level = Number(b.dataset.level); sfx.ui(); this.syncLobby(); }));
     root.querySelector<HTMLInputElement>('#lb-code')?.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') this.act('join'); });

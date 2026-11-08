@@ -18,6 +18,14 @@ describe('every level is well-formed', () => {
         const ids = new Set(lvl.ents.flatMap(e => (e.t === 'lever' || e.t === 'scale' ? [e.id] : [])));
         for (const e of lvl.ents) if ((e.t === 'door' || e.t === 'toaster' || (e.t === 'lift' && e.on)) && 'on' in e) expect(ids.has(e.on!)).toBe(true);
       });
+      it('has at most one golden spoon, floating in open air', () => {
+        const spoons = lvl.ents.filter(e => e.t === 'spoon') as { x: number; y: number }[];
+        expect(spoons.length).toBeLessThanOrEqual(1);
+        for (const sp of spoons) {
+          expect(sp.y).toBeGreaterThanOrEqual(1);
+          expect(lvl.tiles[sp.y * lvl.w + sp.x]).toBe(TILE_EMPTY);
+        }
+      });
       for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
         it(`${n} kaiju spawn in open space and settle without a splat`, () => {
           const w = makeWorld(lvl, n);

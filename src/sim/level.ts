@@ -32,6 +32,7 @@ export type EntDef =
   | { t: 'burner'; x: number; y: number; w: number; cold: number; hot: number; offset?: number }
   | { t: 'check'; x: number; y: number }
   | { t: 'pickup'; kind: PickupKind; x: number; y: number } // eaten on touch, grows back
+  | { t: 'spoon'; x: number; y: number } // the hidden golden spoon: touch it, then clear the level, for a star
   | { t: 'jelly'; x: number; y: number; w: number; h: number; on?: string } // bouncy; frozen solid while switch `on` is on
   | { t: 'block'; mat: 'ice' | 'cracker'; x: number; y: number; w: number; h: number } // ice melts (chili), crackers smash (big kaiju)
   | { t: 'robot'; x: number; y: number } // Pot Mech, 3x3 tiles, top-left tile

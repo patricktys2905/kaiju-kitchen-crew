@@ -15,7 +15,8 @@ import { playMusic, toggleMusic } from '../music';
 import { NO_INPUT, robotRole, World, type GameEvent, type PlayerInput } from '../sim/world';
 import type { TicketRule } from '../sim/level';
 import { isTouchDevice, setTouchMode, toggleFullscreen } from '../touch';
-import { fmtTime, loadProgress, saveClear } from '../ui';
+import { fmtTime, starsHtml } from '../ui';
+import { bestTime, countStars, hatOf, levelOpen, recordClear, STAR_CLEAN, STAR_SPOON, WORLDS } from '../progress';
 
 export interface GameData {
   mode: 'local' | 'host' | 'guest';
@@ -26,6 +27,7 @@ export interface GameData {
   seats?: LobbySeat[]; // host: who is in which seat
   guest?: NetGuest;
   seat?: number; // guest: my seat
+  hats?: string[]; // hat worn by each kaiju ('' = none); local play reads the saved choices
 }
 
 let controllers: Controllers | null = null; // survives level changes in local play
@@ -58,11 +60,13 @@ export class GameScene extends Phaser.Scene {
   private ticketText!: Phaser.GameObjects.Text;
   private hud!: Phaser.GameObjects.Graphics;
   private kaiju: Phaser.GameObjects.Image[] = [];
+  private hats: (Phaser.GameObjects.Image | null)[] = [];
   private tags: Phaser.GameObjects.Text[] = [];
   private scaleTexts: Phaser.GameObjects.Text[] = [];
   private crateTexts: Phaser.GameObjects.Text[] = [];
   private banner!: Phaser.GameObjects.Text;
   private sub!: Phaser.GameObjects.Text;
+  private starsT!: Phaser.GameObjects.Text;
   private infoL!: Phaser.GameObjects.Text;
   private infoR!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
@@ -92,6 +96,7 @@ export class GameScene extends Phaser.Scene {
     this.introT = 3.2;
     this.popups = [];
     this.kaiju = [];
+    this.hats = [];
     this.tags = [];
     this.scaleTexts = [];
     this.crateTexts = [];
@@ -141,6 +146,8 @@ export class GameScene extends Phaser.Scene {
       const img = L(this.textures.exists(key) ? this.add.image(0, 0, key) : this.add.image(0, 0, '__WHITE'));
       img.setOrigin(0.5, 1).setDepth(10);
       this.kaiju.push(img);
+      const hat = (d.hats ?? d.species.map(hatOf))[p.idx] ?? '';
+      this.hats.push(hat && this.textures.exists('hat-' + hat) ? L(this.add.image(0, 0, 'hat-' + hat).setOrigin(0.5, 1).setDepth(10.5)) : null);
       this.tags.push(L(this.add.text(0, 0, '', body(13, SPECIES[p.species].css, 900, { stroke: '#2a1408', strokeThickness: 4 })).setOrigin(0.5, 1).setDepth(11)));
     });
 
@@ -162,6 +169,7 @@ export class GameScene extends Phaser.Scene {
     this.infoR = H(withShadow(this.add.text(VIEW.w - 20, top, '', display(22)).setOrigin(1, 0).setDepth(101), 3));
     this.recipeLabel = H(this.add.text(VIEW.w / 2, 8, 'ORDER', display(14, '#7a4a22', { strokeThickness: 0 })).setOrigin(0.5, 0).setDepth(102));
     this.banner = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 - 70, '', display(76, '#ffe9c7', { align: 'center' })).setOrigin(0.5).setDepth(110), 6));
+    this.starsT = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 4, '', display(46, '#ffd84a', { align: 'center' })).setOrigin(0.5, 0).setDepth(110), 4));
     this.sub = H(withShadow(this.add.text(VIEW.w / 2, VIEW.h / 2 + 10, '', body(24, '#fff6e6', 800, { align: 'center', wordWrap: { width: 900 } })).setOrigin(0.5, 0).setDepth(110), 3));
     const hint = d.mode === 'guest' ? 'F full screen · M music · Esc leave' : d.mode === 'host' ? 'R retry · F full screen · M music · Esc menu' : 'R retry · F full screen · M music · Esc menu · Q / R-Shift swap kaiju';
     this.ticketText = H(withShadow(this.add.text(VIEW.w - 20, (isTouchDevice ? 56 : 14) + 34, '', body(17, '#ffe27a', 900, { align: 'right' })).setOrigin(1, 0).setDepth(101), 2));
@@ -210,6 +218,20 @@ export class GameScene extends Phaser.Scene {
         this.time.delayedCall(2500, () => { if (!this.leaving) { this.leaving = true; this.scene.start('menu', { notice: reason }); } });
       };
     }
+  }
+
+  /** Stars won this run, plus anything newly unlocked. */
+  private rewardText(res: ReturnType<typeof recordClear>, splats: number, spoon: boolean): string {
+    this.starsT.setText(starsHtml(res.starsNow).replace(/<i>★<\/i>/g, '☆'));
+    const why = [splats === 0 ? 'no splats' : '', spoon ? 'golden spoon' : ''].filter(Boolean).join(' · ');
+    const n = countStars(res.newStars);
+    const lines = ['', ''];
+    if (n) lines.push(`+${n} new star${n > 1 ? 's' : ''}!${why ? ` (${why})` : ''}`);
+    if (!(res.starsNow & STAR_CLEAN)) lines.push('Clear it with no splats for a star');
+    else if (!(res.starsNow & STAR_SPOON) && this.world.spoon) lines.push('A golden spoon is hidden somewhere in this level…');
+    for (const h of res.newHats) lines.push(`🎩 New hat unlocked: ${h.name}!`);
+    if (res.worldOpened !== null) lines.push(`🔓 World ${res.worldOpened + 1}: ${WORLDS[res.worldOpened].name} is open!`);
+    return lines.join('\n') + '\n';
   }
 
   /** Host/local: (re)start a level for everyone. */
@@ -265,7 +287,8 @@ export class GameScene extends Phaser.Scene {
     if (d.mode !== 'guest') {
       if (consumeTap('KeyR')) { this.restart(d.level); return; }
       if (w.phase === 'clear' && w.phaseT > 0.8 && (consumeTap('KeyN') || consumeTap('Enter') || startEdge)) {
-        this.restart((d.level + 1) % LEVELS.length);
+        const next = (d.level + 1) % LEVELS.length;
+        if (levelOpen(next)) this.restart(next); else this.toMenu();
         return;
       }
     }
@@ -321,6 +344,7 @@ export class GameScene extends Phaser.Scene {
         case 'jump': sfx.jump(); break;
         case 'land': sfx.land(); break;
         case 'pickup': sfx.pickup(); break;
+        case 'spoon': { sfx.spoon(); const sp = this.world.spoon; if (sp) this.popup('GOLDEN SPOON!', sp.x + sp.w / 2, sp.y - 20, '#ffe27a'); break; }
         case 'throw': sfx.throw(); break;
         case 'catch': sfx.catch(); this.popup('Nice catch!', w.players[e.p].x + PHYS.pw / 2, w.players[e.p].y - 30, '#9fe0ff'); break;
         case 'lever': sfx.lever(); break;
@@ -447,6 +471,16 @@ export class GameScene extends Phaser.Scene {
       const splatted = w.phase === 'splat' && w.splatWho === i;
       img.setAlpha(crew ? 0 : splatted ? 0.35 + 0.3 * Math.sin(time * 30) : 1);
       img.setAngle(splatted ? 90 : 0);
+      const hat = this.hats[i];
+      if (hat) {
+        // sits on the head: scaled to the kaiju, tilted with its step, flops off sideways when splatted
+        const hw = Math.abs(img.displayWidth) * 0.5;
+        hat.setScale(hw / hat.width * (2 - squash) * 0.5 + hw / hat.width * 0.5);
+        const top = img.y - Math.abs(img.displayHeight) * 0.86;
+        hat.setPosition(img.x - p.facing * hw * 0.08, top + hat.displayHeight * 0.35);
+        hat.setFlipX(p.facing < 0).setAngle(splatted ? 70 : p.facing * (walking ? Math.sin(time * 16 + i) * 5 : -4));
+        hat.setAlpha(img.alpha);
+      }
       // name tag
       let label: string;
       let asleep = false;
@@ -473,7 +507,8 @@ export class GameScene extends Phaser.Scene {
       const carryLift = p.carry >= 0 ? PHYS.item : 0;
       // neighbours' tags sit at different heights so they don't overlap
       const near = w.players.some(o => o !== p && o.idx < p.idx && Math.abs(o.x - p.x) < 60 && Math.abs(o.y - p.y) < 20);
-      tag.setPosition(p.x + p.w / 2, p.y - 30 - carryLift - (near ? 15 : 0) + (asleep ? Math.sin(time * 2 + i) * 3 : 0));
+      const hatLift = hat && !crew ? hat.displayHeight * 0.55 : 0;
+      tag.setPosition(p.x + p.w / 2, p.y - 30 - Math.max(carryLift, hatLift) - (near ? 15 : 0) + (asleep ? Math.sin(time * 2 + i) * 3 : 0));
       tag.setAlpha(crew ? 0 : asleep ? 0.7 : 1);
     });
     w.robots.forEach((r, ri) => {
@@ -551,7 +586,7 @@ export class GameScene extends Phaser.Scene {
 
     const lvl = LEVELS[d.level];
     this.infoL.setText(`${d.level + 1}. ${lvl.name}`);
-    this.infoR.setText(`⏱ ${fmtTime(w.levelT)}   💥 ${w.splats}`);
+    this.infoR.setText(`⏱ ${fmtTime(w.levelT)}   💥 ${w.splats}${w.spoon ? (w.spoonGot ? '   🥄 ✓' : '   🥄 ?') : ''}`);
 
     // banners
     let phaseKey = w.phase as string;
@@ -568,13 +603,14 @@ export class GameScene extends Phaser.Scene {
         popIn(this, this.banner);
         this.introT = 0;
       } else if (w.phase === 'clear') {
-        this.bestNow = saveClear(d.level, w.levelT);
-        const best = loadProgress()[d.level];
-        const last = d.level === LEVELS.length - 1, worldEnd = (d.level + 1) % 6 === 0;
+        const res = recordClear(d.level, w.levelT, w.splats, w.spoonGot);
+        this.bestNow = res.best;
+        const best = bestTime(d.level);
+        const last = d.level === LEVELS.length - 1, worldEnd = !last && LEVELS[d.level + 1].world !== lvl.world;
         this.banner.setText(last ? 'ALL ORDERS SERVED!' : worldEnd ? 'WORLD COMPLETE!' : 'ORDER UP!');
         if (last || worldEnd) sfx.recipeDone();
         const nextTxt = d.mode === 'guest' ? 'Waiting for the host…' : isTouchDevice ? '' : 'N / Enter: next level · R: replay · Esc: menu';
-        const extra = last ? 'You beat Kaiju Kitchen Crew! The chef is very impressed.\n' : worldEnd ? `${lvl.world} done! Next up: ${LEVELS[d.level + 1].world}.\n` : '';
+        const extra = this.rewardText(res, w.splats, w.spoonGot) + (last ? 'You beat Kaiju Kitchen Crew! The chef is very impressed.\n' : worldEnd ? `${lvl.world} done! Next up: ${LEVELS[d.level + 1].world}.\n` : '');
         this.sub.setText(`${extra}${fmtTime(w.levelT)} · ${w.splats} splat${w.splats === 1 ? '' : 's'}${this.bestNow ? ' · NEW BEST!' : best !== undefined ? ` · best ${fmtTime(best)}` : ''}\n\n${nextTxt}`);
         popIn(this, this.banner);
         this.introT = 0;
@@ -594,5 +630,6 @@ export class GameScene extends Phaser.Scene {
     }
     setTouchMode(w.phase === 'clear' ? 'end' : 'game', { swap: d.mode === 'local' && d.species.length > 1, host: d.mode !== 'guest' });
     this.hint.setVisible(w.phase === 'play');
+    this.starsT.setVisible(w.phase === 'clear');
   }
 }

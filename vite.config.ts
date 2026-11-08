@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { configDefaults } from 'vitest/config';
 import { defineConfig } from 'vite';
 
 // Version shown in the menu corner: build date + commit, so you can tell which build a phone is running.
@@ -15,6 +16,8 @@ export default defineConfig({
   server: { port: 5195, host: true, open: false },
   preview: { host: true },
   build: { chunkSizeWarningLimit: 2500 },
+  // agent worktrees live under .claude/: never run their tests from here
+  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
   plugins: [
     VitePWA({
       // 'prompt' so a new version never reloads mid-match; src/pwa.ts applies it from the menu.

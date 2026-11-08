@@ -483,6 +483,17 @@ export function drawDynamic(g: G, w: World, time: number, pool: SpritePool | nul
       for (let k = 0; k < (c.w * c.h) / 400; k++) g.fillRect(c.x + 6 + ((k * 37) % (c.w - 14)), c.y + 6 + ((k * 23) % (c.h - 14)), 3, 3);
     }
   }
+  // the golden spoon: gleams and bobs until someone finds it
+  if (w.spoon && !w.spoonGot) {
+    const sp = w.spoon, cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2 + Math.sin(time * 2.5) * 4;
+    g.fillStyle(0xffe27a, 0.18 + 0.1 * Math.sin(time * 4)).fillCircle(cx, cy, 26);
+    if (art('it-spoon')) fitInside(pool!.take('it-spoon', 7), 40, 40).setPosition(cx, cy).setAngle(Math.sin(time * 1.7) * 10);
+    else g.fillStyle(0xf5c542, 1).fillEllipse(cx, cy - 8, 16, 20).fillRect(cx - 2, cy, 4, 18);
+    for (let k = 0; k < 3; k++) {
+      const a = time * 1.5 + k * 2.1, r = 24;
+      g.fillStyle(0xffffff, 0.5 + 0.5 * Math.sin(time * 6 + k)).fillCircle(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2);
+    }
+  }
   // snacks (cookie, lemon drop, chili, soda): bob gently; after being eaten they grow back
   for (const pk of w.pickups) {
     const cx = pk.x + (T - 8) / 2, cy = pk.y + (T - 8) / 2 + Math.sin(time * 3 + pk.x) * 3;

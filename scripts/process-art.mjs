@@ -18,6 +18,7 @@ const SPRITES = [
   [/^kaiju-\d+$/, 512],
   [/^ob-[a-z-]+$/, 512],
   [/^it-[a-z]+$/, 192],
+  [/^hat-[a-z]+$/, 256],
 ];
 const TABLES = [];
 // backgrounds: cropped to size, no background removal. Textures stay square.

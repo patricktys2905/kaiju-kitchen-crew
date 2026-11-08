@@ -2,6 +2,7 @@
 // and computers, and text stays crisp at any screen size.
 import { SPECIES } from './sim/constants';
 import { LEVELS } from './sim/levels';
+import { bestTime, clearedIn, countStars, HATS, hatOf, STAR_CLEAN, STAR_CLEAR, STAR_SPOON, starMask, totalStars, unlockedHats, UNLOCK_NEED, WORLDS, worldOf, worldOpen } from './progress';
 
 const CSS = `
 .panel-wrap { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; font-family: Nunito, Arial, sans-serif; font-weight: 800; color: #f1e4d2; }
@@ -39,6 +40,23 @@ const CSS = `
 .panel .picker button.mine { border-color: #fff; background: #ffcf8a44; }
 .panel .picker button.taken { opacity: 0.45; }
 .panel .picker button .who { position: absolute; top: 2px; right: 4px; font-size: 10px; }
+.panel .worlds { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px; }
+.panel .worlds button { position: relative; height: 74px; color: #fff3dc; padding: 4px; border-radius: 12px; background-size: cover; background-position: center; font-size: 13px; line-height: 1.05;
+  display: flex; flex-direction: column; justify-content: flex-end; text-shadow: 0 2px 0 #140b05, 0 0 6px #140b05; overflow: hidden; }
+.panel .worlds button.on { box-shadow: 0 0 0 3px #fff; color: #ffe9c7; background-color: #3a1f0e; }
+.panel .worlds button .st { font-family: Nunito, Arial, sans-serif; font-weight: 900; font-size: 12px; color: #ffd84a; }
+.panel .worlds button:disabled { opacity: 0.55; filter: grayscale(0.8); }
+.panel .worlds button .lock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; text-shadow: none; }
+.panel .levels button .stars { font-size: 15px; letter-spacing: 1px; color: #ffd84a; }
+.panel .levels button .stars i { font-style: normal; color: #ffffff38; }
+.panel .total { color: #ffd84a; font-size: 16px; margin-left: 8px; font-family: Nunito, Arial, sans-serif; font-weight: 900; }
+.panel .hats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.panel .hats button { width: 54px; height: 50px; padding: 2px; border-radius: 12px; background: #0005; border: 3px solid #ffcf8a55; position: relative; }
+.panel .hats button img { width: 100%; height: 100%; object-fit: contain; }
+.panel .hats button.on { border-color: #fff; background: #ffcf8a44; }
+.panel .hats button:disabled { opacity: 0.35; }
+.panel .hats button small { position: absolute; bottom: -2px; right: 2px; font-size: 10px; font-family: Nunito, Arial, sans-serif; color: #ffd84a; }
+@media (max-width: 700px) { .panel .worlds { grid-template-columns: repeat(3, 1fr); } .panel .levels { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .panel .picker { grid-template-columns: repeat(4, 1fr); } }
 .panel .status.bad { color: #ff8a7a; }
 .panel .title { font-size: 54px; line-height: 1; margin-bottom: 4px; }
@@ -68,27 +86,43 @@ export function mountPanel(id: string): HTMLElement {
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-// ------------------------------------------------------------------ progress
-const KEY = 'kkc-progress';
-export function loadProgress(): Record<number, number> {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<number, number>; } catch { return {}; }
-}
-export function saveClear(level: number, time: number): boolean {
-  const p = loadProgress();
-  const best = p[level] === undefined || time < p[level];
-  if (best) { p[level] = Math.round(time * 10) / 10; localStorage.setItem(KEY, JSON.stringify(p)); }
-  return best;
-}
 export function fmtTime(t: number): string {
-  const m = Math.floor(t / 60), s = Math.floor(t % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const m = Math.floor(t / 60), sec = Math.floor(t % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
+const WORLD_BG: Record<string, string> = { 'Counter Top': 'bg-kitchen', 'The Fridge': 'bg-fridge', 'The Pantry': 'bg-pantry', 'Stove & Oven': 'bg-oven', 'The Sink': 'bg-sink', 'Dinner Service': 'bg-dining', 'The Bakery': 'bg-bakery' };
+export const starsHtml = (mask: number) => [STAR_CLEAR, STAR_CLEAN, STAR_SPOON].map(b => (mask & b ? '★' : '<i>★</i>')).join('');
+
+/** World map: a card per world (locked ones greyed out), then the chosen world's levels with their stars.
+ *  Every button carries data-level, so picking a world just selects its first open level. */
 export function levelGrid(selected: number, enabled = true): string {
-  const prog = loadProgress();
-  const worlds = [...new Set(LEVELS.map(l => l.world))];
-  return worlds.map((wn, wi) => `<div class="world">World ${wi + 1}: ${esc(wn)}</div><div class="levels">${LEVELS.map((l, i) => (l.world !== wn ? '' : `<button data-level="${i}" class="${i === selected ? 'on' : ''}" ${enabled ? '' : 'disabled'}>
-    ${i + 1}. ${esc(l.name)}<small>${prog[i] !== undefined ? `✓ best ${fmtTime(prog[i])}` : '&nbsp;'}</small></button>`)).join('')}</div>`).join('');
+  const cur = Math.max(0, worldOf(selected));
+  const cards = WORLDS.map((wd, wi) => {
+    const open = worldOpen(wi);
+    const stars = wd.levels.reduce((a, i) => a + countStars(starMask(i)), 0);
+    const bg = WORLD_BG[wd.name] ? `background-image:linear-gradient(#140b0533 10%, #140b05ee 85%), url(art/${WORLD_BG[wd.name]}.webp)` : '';
+    const first = wd.levels.find(i => !(starMask(i) & STAR_CLEAR)) ?? wd.levels[0];
+    return `<button data-level="${first}" class="${wi === cur ? 'on' : ''}" style="${bg}" ${enabled && open ? '' : 'disabled'} title="${open ? '' : `Clear ${UNLOCK_NEED} levels of ${esc(WORLDS[wi - 1]?.name ?? '')} to open`}">
+      ${open ? '' : '<span class="lock">🔒</span>'}${wi + 1}. ${esc(wd.name)}<span class="st">★ ${stars}/${wd.levels.length * 3}</span></button>`;
+  }).join('');
+  const wd = WORLDS[cur];
+  const lv = wd.levels.map(i => {
+    const l = LEVELS[i], m = starMask(i), best = bestTime(i);
+    return `<button data-level="${i}" class="${i === selected ? 'on' : ''}" ${enabled ? '' : 'disabled'}>${i + 1}. ${esc(l.name)}
+      <small><span class="stars">${starsHtml(m)}</span>${best !== undefined ? ` · ${fmtTime(best)}` : ''}</small></button>`;
+  }).join('');
+  const need = cur > 0 && !worldOpen(cur) ? `<p class="muted">🔒 Clear ${UNLOCK_NEED} levels of ${esc(WORLDS[cur - 1].name)} to open this world (${clearedIn(cur - 1)}/${UNLOCK_NEED}).</p>` : '';
+  return `<div class="worlds">${cards}</div><div class="world">World ${cur + 1}: ${esc(wd.name)} <span class="total">★ ${totalStars()} total</span></div>
+    <p class="muted" style="margin:2px 0">★ clear it · ★ no splats · ★ find the hidden golden spoon</p>${need}<div class="levels">${lv}</div>`;
+}
+
+/** Hat choices for one kaiju (locked ones show how many stars they need). */
+export function hatRow(species: number, current = hatOf(species)): string {
+  const open = new Set(unlockedHats().map(h => h.id));
+  const btn = (id: string, label: string, inner: string, ok: boolean, need = 0) =>
+    `<button data-hat="${id}" class="${current === id ? 'on' : ''}" ${ok ? '' : 'disabled'} title="${esc(label)}${ok ? '' : ` (needs ★ ${need})`}">${inner}${ok ? '' : `<small>★${need}</small>`}</button>`;
+  return `<div class="hats"><span class="muted">Hat:</span>${btn('', 'No hat', '<span style="font-size:22px">✖</span>', true)}${HATS.map(h => btn(h.id, h.name, `<img src="art/hat-${h.id}.webp" alt="">`, open.has(h.id), h.stars)).join('')}</div>`;
 }
 
 export function seatRow(species: number, name: string, mine: boolean, extra = ''): string {

@@ -8,7 +8,8 @@ export function nudgeSleepers(w: World, inputs: PlayerInput[], asleep: (i: numbe
       for (const a of w.players) {
         const m = inputs[a.idx].mx;
         if (a === s || Math.abs(m) < 0.2 || a.inRobot >= 0 || !a.grounded) continue; // only a walking kaiju nudges
-        const gap = m > 0 ? s.x - (a.x + a.w) : a.x - (s.x + s.w);
+        const dir = m * (w.rule === 'reverse' ? -1 : 1); // the way it actually walks (backwards-day ticket flips it)
+        const gap = dir > 0 ? s.x - (a.x + a.w) : a.x - (s.x + s.w);
         if (gap > -1 && gap < 4 && a.y < s.y + s.h - 8 && s.y < a.y + a.h - 8) { inputs[s.idx] = { ...inputs[s.idx], mx: m }; break; }
       }
     }

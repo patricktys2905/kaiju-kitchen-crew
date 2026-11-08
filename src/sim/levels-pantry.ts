@@ -18,6 +18,7 @@ function noodleBuddies(): LevelDef {
     .add(
       { t: 'item', kind: 'honey', x: 10, y: 15 },
       { t: 'item', kind: 'cereal', x: 31, y: 12 },
+      { t: 'spoon', x: 47, y: 7 }, // high over the pot: stand on top of it and boost off a friend's head
       { t: 'pot', x: 46, y: 12 },
       { t: 'plate', x: 50, y: 12, w: 8 },
       { t: 'sign', x: 2, y: 9, text: 'Tied together! Lower a friend into the pit for the honey' },
@@ -39,6 +40,7 @@ function swingShift(): LevelDef {
     .traps(28, 16, 2).solid(30, 15, 2, 1).traps(32, 16, 2).solid(34, 15, 2, 1).traps(36, 16, 2)
     .add(
       { t: 'item', kind: 'pasta', x: 14, y: 13 },
+      { t: 'spoon', x: 12, y: 5 }, // high over the shaft: leap off a friend's head at the edge (the noodle catches you)
       { t: 'check', x: 27, y: 15 },
       { t: 'item', kind: 'flour', x: 34, y: 14 },
       { t: 'pot', x: 46, y: 15 },
@@ -62,6 +64,7 @@ function potMech(): LevelDef {
       { t: 'scale', id: 's', x: 24, y: 13, w: 3, need: 6, hold: 6 },
       { t: 'door', on: 's', x: 32, y: 6, h: 7 },
       { t: 'item', kind: 'pasta', x: 38, y: 12 },
+      { t: 'spoon', x: 30, y: 5 }, // high by the door: ride on the Mech's head while it jumps
       { t: 'pot', x: 44, y: 12 },
       { t: 'plate', x: 52, y: 12, w: 10 },
       { t: 'sign', x: 1, y: 8, text: 'GRAB next to the Pot Mech to climb in (HOLD GRAB to hop out). 1st in = legs, 2nd = jump, 3rd = arm' },
@@ -80,6 +83,7 @@ function mechArm(): LevelDef {
       { t: 'robot', x: 3, y: 13 },
       { t: 'item', kind: 'melon', x: 13, y: 15 },
       { t: 'lever', id: 'g', x: 17, y: 11 },
+      { t: 'spoon', x: 20, y: 7 }, // up by the door wall: leap off a friend's head from the end of the lever shelf
       { t: 'door', on: 'g', x: 21, y: 9, h: 7 },
       { t: 'item', kind: 'honey', x: 30, y: 15 },
       { t: 'pot', x: 44, y: 15 },
@@ -102,6 +106,7 @@ function orderChaos(): LevelDef {
       { t: 'ticket', x: 20, rule: 'reverse' },
       { t: 'ticket', x: 38, rule: 'dark' },
       { t: 'item', kind: 'flour', x: 45, y: 12 },
+      { t: 'spoon', x: 48, y: 9 }, // in the dark past the flour shelf: a leap off its end
       { t: 'ticket', x: 52, rule: 'speedy' },
       { t: 'pot', x: 62, y: 15 },
       { t: 'plate', x: 65, y: 15, w: 8 },
@@ -130,6 +135,7 @@ function pantryPanic(): LevelDef {
       { t: 'item', kind: 'pasta', x: 46, y: 15 },
       { t: 'block', mat: 'cracker', x: 50, y: 8, w: 1, h: 8 },
       { t: 'item', kind: 'melon', x: 54, y: 15 },
+      { t: 'spoon', x: 57, y: 5 }, // high off the left end of the block: leap off the Mech's head (no ticket needed)
       { t: 'ticket', x: 55, rule: 'lowgrav', dur: 15 },
       { t: 'item', kind: 'flour', x: 64, y: 11 },
       { t: 'check', x: 69, y: 15 },

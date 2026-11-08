@@ -109,13 +109,15 @@ function washingUp(): LevelDef {
       { t: 'lever', id: 'p', x: 4, y: 9 },
       { t: 'water', x: 9, w: 16, low: 15, high: 6, on: 'p' },
       { t: 'item', kind: 'grapes', x: 16, y: 3 },
-      { t: 'item', kind: 'apple', x: 28, y: 5 },
       { t: 'bubbler', x: 35, y: 15, every: 2.2 },
       { t: 'item', kind: 'pear', x: 41, y: 5 },
       { t: 'jet', x: 47, y: 9, w: 12, h: 7, dir: 1 },
       { t: 'check', x: 59, y: 15 },
       { t: 'item', kind: 'carrot', x: 62, y: 15 },
       { t: 'ticket', x: 64, rule: 'dark', dur: 12 },
+      // the apple waits past the jet: it only blows one way, so at most two ingredients (grapes, pear)
+      // may need carrying across it, or a team of 2 (one pair of hands each) could never finish
+      { t: 'item', kind: 'apple', x: 70, y: 15 },
       { t: 'pot', x: 80, y: 15 },
       { t: 'plate', x: 85, y: 15, w: 10 },
     );
